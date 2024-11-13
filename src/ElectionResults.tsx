@@ -1,17 +1,6 @@
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
 
-// Import recharts components separately to avoid type issues
-const {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    XAxis,
-    YAxis,
-    Tooltip
-} = require('recharts');
-
 interface Candidate {
     id: string;
     name: string;
@@ -45,10 +34,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
     useEffect(() => {
         console.log('ElectionResults mounted');
     }, []);
-
-    useEffect(() => {
-        console.log('Election data changed:', election);
-    }, [election]);
 
     console.log('ElectionResults rendered with election:', election);
 
@@ -85,8 +70,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
         };
     }).sort((a, b) => (b.approval || 0) - (a.approval || 0));
 
-    console.log('Calculated approval scores:', approvalScores);
-
     // Calculate Borda count scores
     const bordaScores: ChartData[] = election.candidates.map(candidate => {
         const totalPoints = election.votes.reduce((sum, vote) => {
@@ -116,88 +99,50 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                         {/* Approval Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Approval Results</h3>
-                            <div className="h-64">
-                                {approvalScores.length > 0 && (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={approvalScores}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="name"
-                                                angle={-45}
-                                                textAnchor="end"
-                                                height={80}
-                                            />
-                                            <YAxis
-                                                label={{
-                                                    value: 'Approval %',
-                                                    angle: -90,
-                                                    position: 'insideLeft'
-                                                }}
-                                            />
-                                            <Tooltip />
-                                            <Bar
-                                                dataKey="approval"
-                                                fill="#22C55E"
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                {approvalScores.map((result, index) => (
-                                    <div key={result.name} className="flex justify-between items-center">
-                                        <span className="font-medium">
-                                            {index + 1}. {result.name}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                            {result.approval}% approval
-                                        </span>
-                                    </div>
-                                ))}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b">
+                                            <th className="text-left py-2">Rank</th>
+                                            <th className="text-left py-2">Candidate</th>
+                                            <th className="text-right py-2">Approval %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {approvalScores.map((result, index) => (
+                                            <tr key={result.name} className="border-b">
+                                                <td className="py-2">{index + 1}</td>
+                                                <td className="py-2">{result.name}</td>
+                                                <td className="text-right py-2">{result.approval}%</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
                         {/* Ranking Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Ranking Results (Borda Count)</h3>
-                            <div className="h-64">
-                                {bordaScores.length > 0 && (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={bordaScores}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="name"
-                                                angle={-45}
-                                                textAnchor="end"
-                                                height={80}
-                                            />
-                                            <YAxis
-                                                label={{
-                                                    value: 'Average Points',
-                                                    angle: -90,
-                                                    position: 'insideLeft'
-                                                }}
-                                            />
-                                            <Tooltip />
-                                            <Bar
-                                                dataKey="score"
-                                                fill="#3B82F6"
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                {bordaScores.map((result, index) => (
-                                    <div key={result.name} className="flex justify-between items-center">
-                                        <span className="font-medium">
-                                            {index + 1}. {result.name}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                            {result.score} avg. points
-                                        </span>
-                                    </div>
-                                ))}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b">
+                                            <th className="text-left py-2">Rank</th>
+                                            <th className="text-left py-2">Candidate</th>
+                                            <th className="text-right py-2">Average Points</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bordaScores.map((result, index) => (
+                                            <tr key={result.name} className="border-b">
+                                                <td className="py-2">{index + 1}</td>
+                                                <td className="py-2">{result.name}</td>
+                                                <td className="text-right py-2">{result.score}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
