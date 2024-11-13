@@ -2,12 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow reading any election document
     match /elections/{electionId} {
-      allow read: true;
+      allow read: if true;
       
       // Allow creating new elections
-      allow create: if
+      allow create: if 
         // Validate election document structure
         request.resource.data.title is string &&
         request.resource.data.title.size() > 0 &&
@@ -22,10 +21,11 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']) &&
         // Validate vote structure
         request.resource.data.votes.size() == resource.data.votes.size() + 1 &&
-        validateVoteStructure(request.resource.data.votes.getLast());
+        validateVoteStructure();
     }
     
-    function validateVoteStructure(vote) {
+    function validateVoteStructure() {
+      let vote = request.resource.data.votes.getLast();
       return vote.voterName is string &&
              vote.voterName.size() > 0 &&
              vote.ranking is list &&
