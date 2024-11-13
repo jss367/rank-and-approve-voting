@@ -1,14 +1,16 @@
 import React from 'react';
-import {
+import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
+
+// Import recharts components separately to avoid type issues
+const {
     Bar,
     BarChart,
     CartesianGrid,
     ResponsiveContainer,
     XAxis,
-    YAxis
-} from 'recharts';
-import { Tooltip as RechartsTooltip } from 'recharts/lib/component/Tooltip';
-import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
+    YAxis,
+    Tooltip
+} = require('recharts');
 
 interface Candidate {
     id: string;
@@ -39,16 +41,6 @@ interface ElectionResultsProps {
     election: Election;
 }
 
-type TooltipContentProps = {
-    active?: boolean;
-    payload?: Array<{
-        value: number;
-        name: string;
-        dataKey: string;
-    }>;
-    label?: string;
-};
-
 const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
     // Calculate approval scores
     const approvalScores: ChartData[] = election.candidates.map(candidate => {
@@ -77,22 +69,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
             score: Number(averagePoints.toFixed(1))
         };
     }).sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    const CustomTooltip: React.FC<TooltipContentProps> = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            const isApproval = payload[0].dataKey === 'approval';
-            return (
-                <div className="bg-white p-2 border border-gray-200 rounded shadow-sm">
-                    <p className="font-medium">{label}</p>
-                    <p className="text-sm">
-                        {payload[0].name}: {payload[0].value}
-                        {isApproval ? "%" : " points"}
-                    </p>
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <div className="space-y-8">
@@ -125,8 +101,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <RechartsTooltip content={<CustomTooltip />} />
-                                        <Bar dataKey="approval" fill="#22C55E" name="Approval" />
+                                        <Tooltip
+                                            formatter={(value: any) => [`${value}%`, 'Approval']}
+                                        />
+                                        <Bar
+                                            dataKey="approval"
+                                            fill="#22C55E"
+                                        />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -164,8 +145,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <RechartsTooltip content={<CustomTooltip />} />
-                                        <Bar dataKey="score" fill="#3B82F6" name="Score" />
+                                        <Tooltip
+                                            formatter={(value: any) => [`${value} points`, 'Score']}
+                                        />
+                                        <Bar
+                                            dataKey="score"
+                                            fill="#3B82F6"
+                                        />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
