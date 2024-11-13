@@ -74,7 +74,12 @@ function App() {
             setElectionId(id);
             loadElection(id);
             if (view === 'results') {
-                setMode('results');
+                console.log('Setting mode to results:', {
+                    mode,
+                    electionId,
+                    election
+                });
+                setMode('results');;
             } else {
                 setMode('vote');
             }

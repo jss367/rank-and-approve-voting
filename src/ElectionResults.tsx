@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
 
 // Import recharts components separately to avoid type issues
@@ -42,9 +42,22 @@ interface ElectionResultsProps {
 }
 
 const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
+    useEffect(() => {
+        console.log('ElectionResults mounted');
+    }, []);
+
+    useEffect(() => {
+        console.log('Election data changed:', election);
+    }, [election]);
+
     console.log('ElectionResults rendered with election:', election);
 
     if (!election || !election.candidates || !election.votes) {
+        console.log('Missing required election data:', {
+            hasElection: !!election,
+            hasCandidates: !!election?.candidates,
+            hasVotes: !!election?.votes
+        });
         return (
             <Card>
                 <CardHeader>
@@ -71,6 +84,8 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
             approval: Number(approvalPercentage.toFixed(1))
         };
     }).sort((a, b) => (b.approval || 0) - (a.approval || 0));
+
+    console.log('Calculated approval scores:', approvalScores);
 
     // Calculate Borda count scores
     const bordaScores: ChartData[] = election.candidates.map(candidate => {
