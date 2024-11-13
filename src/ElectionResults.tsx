@@ -20,23 +20,16 @@ interface Election {
     createdAt: string;
 }
 
-interface HeadToHeadResult {
-    winner: string;
-    loser: string;
-    winnerVotes: number;
-    loserVotes: number;
+interface PairwiseResult {
+    candidate1: string;
+    candidate2: string;
+    candidate1Votes: number;
+    candidate2Votes: number;
 }
 
-interface CandidateScore {
-    name: string;
-    approval: number;
-    wins: number;
-    losses: number;
-}
+// ... other interfaces remain the same ...
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
-    console.log('ElectionResults rendered with election:', election);
-
     if (!election || !election.candidates || !election.votes) {
         return (
             <Card>
@@ -52,9 +45,9 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         );
     }
 
-    // Calculate head-to-head matchups
-    const getHeadToHeadResults = () => {
-        const results: HeadToHeadResult[] = [];
+    // Calculate pairwise comparisons for all candidate pairs
+    const getPairwiseResults = () => {
+        const results: PairwiseResult[] = [];
 
         for (let i = 0; i < election.candidates.length; i++) {
             for (let j = i + 1; j < election.candidates.length; j++) {
@@ -73,33 +66,45 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                     } else if (pos2 < pos1) {
                         candidate2Wins++;
                     }
-                    // Ties are ignored
                 });
 
-                if (candidate1Wins > candidate2Wins) {
-                    results.push({
-                        winner: candidate1.name,
-                        loser: candidate2.name,
-                        winnerVotes: candidate1Wins,
-                        loserVotes: candidate2Wins
-                    });
-                } else if (candidate2Wins > candidate1Wins) {
-                    results.push({
-                        winner: candidate2.name,
-                        loser: candidate1.name,
-                        winnerVotes: candidate2Wins,
-                        loserVotes: candidate1Wins
-                    });
-                }
-                // Ties are excluded from results
+                results.push({
+                    candidate1: candidate1.name,
+                    candidate2: candidate2.name,
+                    candidate1Votes: candidate1Wins,
+                    candidate2Votes: candidate2Wins
+                });
             }
         }
 
         return results;
     };
 
-    // Calculate Smith set
-    const calculateSmithSet = (headToHeadResults: HeadToHeadResult[]): string[] => {
+    // Convert pairwise results to head-to-head victories for Smith set calculation
+    const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
+        const victories: { winner: string; loser: string; margin: number }[] = [];
+
+        pairwiseResults.forEach(result => {
+            if (result.candidate1Votes > result.candidate2Votes) {
+                victories.push({
+                    winner: result.candidate1,
+                    loser: result.candidate2,
+                    margin: result.candidate1Votes - result.candidate2Votes
+                });
+            } else if (result.candidate2Votes > result.candidate1Votes) {
+                victories.push({
+                    winner: result.candidate2,
+                    loser: result.candidate1,
+                    margin: result.candidate2Votes - result.candidate1Votes
+                });
+            }
+        });
+
+        return victories;
+    };
+
+    // Calculate Smith set based on victories
+    const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
         const candidates = new Set(election.candidates.map(c => c.name));
         const defeats: Record<string, string[]> = {};
 
@@ -109,7 +114,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         });
 
         // Record who defeats whom
-        headToHeadResults.forEach(result => {
+        victories.forEach(result => {
             defeats[result.winner].push(result.loser);
         });
 
@@ -135,19 +140,17 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         return Array.from(currentSet);
     };
 
-    // Calculate approval scores
-    const getApprovalScores = () => {
-        return election.candidates.map(candidate => ({
-            name: candidate.name,
-            approval: election.votes.filter(vote =>
-                vote.approved.includes(candidate.id)
-            ).length
-        })).sort((a, b) => b.approval - a.approval);
-    };
+    const pairwiseResults = getPairwiseResults();
+    const victories = getHeadToHeadVictories(pairwiseResults);
+    const smithSet = calculateSmithSet(victories);
 
-    const headToHeadResults = getHeadToHeadResults();
-    const smithSet = calculateSmithSet(headToHeadResults);
-    const approvalScores = getApprovalScores();
+    // Calculate approval scores
+    const approvalScores = election.candidates.map(candidate => ({
+        name: candidate.name,
+        approval: election.votes.filter(vote =>
+            vote.approved.includes(candidate.id)
+        ).length
+    })).sort((a, b) => b.approval - a.approval);
 
     // Find winner - highest approval among Smith set
     const winner = approvalScores
@@ -165,56 +168,33 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-8">
-                        {/* Winner */}
-                        {winner && (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                <h3 className="text-lg font-semibold text-green-800">Winner: {winner.name}</h3>
-                                <p className="text-sm text-green-600">
-                                    Selected from Smith set with highest approval ({winner.approval} votes)
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Smith Set */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Smith Set</h3>
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-600">
-                                    Candidates that are not beaten by anyone outside the set:
-                                </p>
-                                <ul className="mt-2 space-y-1">
-                                    {smithSet.map(candidate => (
-                                        <li key={candidate} className="text-blue-800">
-                                            {candidate}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-
-                        {/* Head-to-head Results */}
+                        {/* Pairwise Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Head-to-head Matchups</h3>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b">
-                                            <th className="text-left py-2">Winner</th>
-                                            <th className="text-left py-2">Loser</th>
-                                            <th className="text-right py-2">Margin</th>
-                                            <th className="text-right py-2">Vote Split</th>
+                                            <th className="text-left py-2">First Candidate</th>
+                                            <th className="text-right py-2">Votes</th>
+                                            <th className="text-left py-2 pl-4">Second Candidate</th>
+                                            <th className="text-right py-2">Votes</th>
+                                            <th className="text-right py-2">Winner</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {headToHeadResults.map((result, index) => (
+                                        {pairwiseResults.map((result, index) => (
                                             <tr key={index} className="border-b">
-                                                <td className="py-2">{result.winner}</td>
-                                                <td className="py-2">{result.loser}</td>
-                                                <td className="text-right py-2">
-                                                    {result.winnerVotes - result.loserVotes}
-                                                </td>
-                                                <td className="text-right py-2">
-                                                    {result.winnerVotes} - {result.loserVotes}
+                                                <td className="py-2">{result.candidate1}</td>
+                                                <td className="text-right py-2">{result.candidate1Votes}</td>
+                                                <td className="py-2 pl-4">{result.candidate2}</td>
+                                                <td className="text-right py-2">{result.candidate2Votes}</td>
+                                                <td className="text-right py-2 font-medium">
+                                                    {result.candidate1Votes > result.candidate2Votes
+                                                        ? result.candidate1
+                                                        : result.candidate2Votes > result.candidate1Votes
+                                                            ? result.candidate2
+                                                            : "Tie"}
                                                 </td>
                                             </tr>
                                         ))}
@@ -222,6 +202,29 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                 </table>
                             </div>
                         </div>
+
+                        {/* Smith Set */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">Smith Set</h3>
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-sm text-blue-600 mb-2">
+                                    The Smith set contains the candidates that form the smallest non-empty set where every candidate in the set beats every candidate outside the set in a head-to-head match.
+                                </p>
+                                <p className="text-sm font-medium text-blue-800">
+                                    Smith Set members: {smithSet.join(", ")}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Winner */}
+                        {winner && (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <h3 className="text-lg font-semibold text-green-800">Winner: {winner.name}</h3>
+                                <p className="text-sm text-green-600">
+                                    Selected from the Smith set with highest approval ({winner.approval} votes)
+                                </p>
+                            </div>
+                        )}
 
                         {/* Approval Scores */}
                         <div className="space-y-4">
@@ -235,7 +238,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {approvalScores.map((score, index) => (
+                                        {approvalScores.map((score) => (
                                             <tr key={score.name} className="border-b">
                                                 <td className="py-2">{score.name}</td>
                                                 <td className="text-right py-2">{score.approval}</td>
