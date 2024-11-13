@@ -3,6 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /elections/{electionId} {
+      // Allow anyone to read elections
       allow read: if true;
       
       // Allow creating new elections
@@ -15,22 +16,37 @@ service cloud.firestore {
         request.resource.data.votes is list &&
         request.resource.data.createdAt is string;
       
-      // Allow updating only the votes array
+      // Allow updating to add votes
       allow update: if
-        // Only allow adding to the votes array
+        // Make sure the original document exists
+        resource != null &&
+        // Only allow changes to the votes array
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']) &&
-        // Validate vote structure
-        request.resource.data.votes.size() == resource.data.votes.size() + 1 &&
-        validateVoteStructure();
+        // Make sure all other fields remain unchanged
+        request.resource.data.title == resource.data.title &&
+        request.resource.data.candidates == resource.data.candidates &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        // Validate the new vote being added
+        validateNewVote(resource.data, request.resource.data);
     }
     
-    function validateVoteStructure() {
-      let vote = request.resource.data.votes.getLast();
-      return vote.voterName is string &&
-             vote.voterName.size() > 0 &&
-             vote.ranking is list &&
-             vote.approved is list &&
-             vote.timestamp is string;
+    function validateNewVote(old, new) {
+      let oldVotes = old.votes;
+      let newVotes = new.votes;
+      
+      // Check if exactly one vote was added
+      let hasOneNewVote = newVotes.size() == oldVotes.size() + 1;
+      
+      // Get the new vote
+      let newVote = newVotes[newVotes.size() - 1];
+      
+      return hasOneNewVote &&
+        // Validate vote structure
+        newVote.voterName is string &&
+        newVote.voterName.size() > 0 &&
+        newVote.ranking is list &&
+        newVote.approved is list &&
+        newVote.timestamp is string;
     }
   }
 }
