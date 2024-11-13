@@ -10,7 +10,8 @@ import {
 } from 'firebase/firestore';
 import { Check, Copy, Grip, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
+import type { DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
@@ -187,150 +188,98 @@ function App() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="flex justify-center items-center min-h-screen bg-background">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-2xl mx-auto p-4">
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Book Club Vote</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {error && (
-                        <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
-                            {error}
-                        </div>
-                    )}
-
-                    {mode === 'home' && (
-                        <div className="space-y-4">
-                            <Button
-                                className="w-full"
-                                onClick={() => setMode('create')}
-                            >
-                                Create New Election
-                            </Button>
-                        </div>
-                    )}
-
-                    {mode === 'create' && (
-                        <div className="space-y-4">
-                            <Input
-                                value={electionTitle}
-                                onChange={(e) => setElectionTitle(e.target.value)}
-                                placeholder="Election Title (e.g., July Book Selection)"
-                                className="mb-4"
-                            />
-
-                            <div className="flex gap-2">
-                                <Input
-                                    value={newCandidate}
-                                    onChange={(e) => setNewCandidate(e.target.value)}
-                                    placeholder="Add book title..."
-                                    onKeyPress={(e) => e.key === 'Enter' && addCandidate()}
-                                />
-                                <Button onClick={addCandidate}>
-                                    <Plus className="w-4 h-4" />
-                                </Button>
+        <div className="min-h-screen bg-slate-50 py-8">
+            <div className="max-w-2xl mx-auto px-4">
+                <Card className="shadow-lg border-slate-200">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl font-bold text-slate-900">Book Club Vote</CardTitle>
+                        {election?.title && (
+                            <p className="text-slate-500 text-sm">{election.title}</p>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {error && (
+                            <div className="mb-6 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                                {error}
                             </div>
+                        )}
 
-                            <DragDropContext onDragEnd={handleDragEnd}>
-                                <Droppable droppableId="candidates">
-                                    {(provided) => (
-                                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                                            {candidates.map((candidate, index) => (
-                                                <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
-                                                    {(provided) => (
-                                                        <div
-                                                            ref={provided.innerRef}
-                                                            {...provided.draggableProps}
-                                                            className="flex items-center gap-2 p-2 bg-gray-100 rounded"
-                                                        >
-                                                            <span {...provided.dragHandleProps}>
-                                                                <Grip className="w-4 h-4 text-gray-400" />
-                                                            </span>
-                                                            <span className="flex-grow">{candidate.name}</span>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => removeCandidate(candidate.id)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4 text-red-500" />
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </Draggable>
-                                            ))}
-                                            {provided.placeholder}
-                                        </div>
-                                    )}
-                                </Droppable>
-                            </DragDropContext>
-
-                            {candidates.length > 0 && (
+                        {mode === 'home' && (
+                            <div className="space-y-4">
                                 <Button
                                     className="w-full"
-                                    onClick={createElection}
+                                    size="lg"
+                                    onClick={() => setMode('create')}
                                 >
-                                    Create Election
+                                    Create New Election
                                 </Button>
-                            )}
+                            </div>
+                        )}
 
-                            {shareUrl && (
-                                <div className="mt-4 p-4 bg-gray-100 rounded">
-                                    <p className="mb-2 font-bold">Share this link with voters:</p>
+                        {mode === 'create' && (
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <Input
+                                        value={electionTitle}
+                                        onChange={(e) => setElectionTitle(e.target.value)}
+                                        placeholder="Election Title (e.g., July Book Selection)"
+                                        className="w-full"
+                                    />
+
                                     <div className="flex gap-2">
-                                        <Input value={shareUrl} readOnly />
-                                        <Button onClick={copyShareUrl}>
-                                            <Copy className="w-4 h-4" />
+                                        <Input
+                                            value={newCandidate}
+                                            onChange={(e) => setNewCandidate(e.target.value)}
+                                            placeholder="Add book title..."
+                                            onKeyPress={(e) => e.key === 'Enter' && addCandidate()}
+                                            className="flex-1"
+                                        />
+                                        <Button onClick={addCandidate} variant="secondary">
+                                            <Plus className="w-4 h-4" />
                                         </Button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
 
-                    {mode === 'vote' && election && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-bold mb-4">{election.title}</h2>
-
-                            <Input
-                                value={voterName}
-                                onChange={(e) => setVoterName(e.target.value)}
-                                placeholder="Your Name"
-                                className="mb-4"
-                            />
-
-                            <div className="space-y-2">
-                                <p className="text-sm text-gray-600 mb-2">
-                                    1. Drag to rank the books in your preferred order
-                                    2. Click the checkmark to approve books you'd be happy to read
-                                </p>
                                 <DragDropContext onDragEnd={handleDragEnd}>
-                                    <Droppable droppableId="voting">
+                                    <Droppable droppableId="candidates">
                                         {(provided) => (
-                                            <div {...provided.droppableProps} ref={provided.innerRef}>
+                                            <div
+                                                {...provided.droppableProps}
+                                                ref={provided.innerRef}
+                                                className="space-y-2"
+                                            >
                                                 {candidates.map((candidate, index) => (
-                                                    <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                                                    <Draggable
+                                                        key={candidate.id}
+                                                        draggableId={candidate.id}
+                                                        index={index}
+                                                    >
                                                         {(provided) => (
                                                             <div
                                                                 ref={provided.innerRef}
                                                                 {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                className="flex items-center gap-2 p-2 bg-gray-100 rounded mb-2"
+                                                                className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg border border-slate-200 shadow-sm"
                                                             >
-                                                                <span className="w-6">{index + 1}.</span>
-                                                                <span className="flex-grow">{candidate.name}</span>
+                                                                <span {...provided.dragHandleProps}>
+                                                                    <Grip className="w-4 h-4 text-slate-400" />
+                                                                </span>
+                                                                <span className="flex-grow font-medium text-slate-700">
+                                                                    {candidate.name}
+                                                                </span>
                                                                 <Button
-                                                                    variant={approvedCandidates.has(candidate.id) ? "default" : "outline"}
+                                                                    variant="ghost"
                                                                     size="sm"
-                                                                    onClick={() => toggleApproval(candidate.id)}
+                                                                    onClick={() => removeCandidate(candidate.id)}
+                                                                    className="text-slate-500 hover:text-destructive"
                                                                 >
-                                                                    <Check className="w-4 h-4" />
+                                                                    <Trash2 className="w-4 h-4" />
                                                                 </Button>
                                                             </div>
                                                         )}
@@ -341,26 +290,112 @@ function App() {
                                         )}
                                     </Droppable>
                                 </DragDropContext>
+
+                                {candidates.length > 0 && (
+                                    <Button
+                                        className="w-full"
+                                        size="lg"
+                                        onClick={createElection}
+                                    >
+                                        Create Election
+                                    </Button>
+                                )}
+
+                                {shareUrl && (
+                                    <div className="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
+                                        <p className="mb-2 font-medium text-slate-900">Share this link with voters:</p>
+                                        <div className="flex gap-2">
+                                            <Input value={shareUrl} readOnly className="bg-white" />
+                                            <Button onClick={copyShareUrl} variant="secondary">
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+                        )}
 
-                            <Button
-                                className="w-full"
-                                onClick={submitVote}
-                                disabled={!voterName.trim()}
-                            >
-                                Submit Vote
-                            </Button>
-                        </div>
-                    )}
+                        {mode === 'vote' && election && (
+                            <div className="space-y-6">
+                                <Input
+                                    value={voterName}
+                                    onChange={(e) => setVoterName(e.target.value)}
+                                    placeholder="Your Name"
+                                    className="w-full"
+                                />
 
-                    {mode === 'success' && (
-                        <div className="text-center">
-                            <h2 className="text-xl font-bold mb-2">Vote Submitted!</h2>
-                            <p>Thank you for voting.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                <div className="space-y-4">
+                                    <div className="text-sm text-slate-500 space-y-1">
+                                        <p>1. Drag to rank the books in your preferred order</p>
+                                        <p>2. Click the checkmark to approve books you'd be happy to read</p>
+                                    </div>
+
+                                    <DragDropContext onDragEnd={handleDragEnd}>
+                                        <Droppable droppableId="voting">
+                                            {(provided) => (
+                                                <div
+                                                    {...provided.droppableProps}
+                                                    ref={provided.innerRef}
+                                                    className="space-y-2"
+                                                >
+                                                    {candidates.map((candidate, index) => (
+                                                        <Draggable
+                                                            key={candidate.id}
+                                                            draggableId={candidate.id}
+                                                            index={index}
+                                                        >
+                                                            {(provided) => (
+                                                                <div
+                                                                    ref={provided.innerRef}
+                                                                    {...provided.draggableProps}
+                                                                    {...provided.dragHandleProps}
+                                                                    className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg border border-slate-200 shadow-sm"
+                                                                >
+                                                                    <span className="w-6 font-medium text-slate-500">
+                                                                        {index + 1}.
+                                                                    </span>
+                                                                    <span className="flex-grow font-medium text-slate-700">
+                                                                        {candidate.name}
+                                                                    </span>
+                                                                    <Button
+                                                                        variant={approvedCandidates.has(candidate.id) ? "default" : "outline"}
+                                                                        size="sm"
+                                                                        onClick={() => toggleApproval(candidate.id)}
+                                                                        className={approvedCandidates.has(candidate.id) ? "bg-green-600 hover:bg-green-700" : ""}
+                                                                    >
+                                                                        <Check className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </Draggable>
+                                                    ))}
+                                                    {provided.placeholder}
+                                                </div>
+                                            )}
+                                        </Droppable>
+                                    </DragDropContext>
+                                </div>
+
+                                <Button
+                                    className="w-full"
+                                    size="lg"
+                                    onClick={submitVote}
+                                    disabled={!voterName.trim()}
+                                >
+                                    Submit Vote
+                                </Button>
+                            </div>
+                        )}
+
+                        {mode === 'success' && (
+                            <div className="text-center py-6 space-y-2">
+                                <h2 className="text-xl font-bold text-slate-900">Vote Submitted!</h2>
+                                <p className="text-slate-500">Thank you for voting.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
