@@ -81,9 +81,17 @@ function App() {
         }
     }, []);
 
+    // Add new useEffect to reload election data when switching to results mode
+    useEffect(() => {
+        if (mode === 'results' && electionId) {
+            loadElection(electionId);
+        }
+    }, [mode, electionId]);
+
     const loadElection = async (id: string) => {
         try {
             setLoading(true);
+            setError(''); // Clear any existing errors
             const electionDoc = await getDoc(doc(db, 'elections', id));
             if (electionDoc.exists()) {
                 const data = electionDoc.data() as Election;
@@ -142,6 +150,8 @@ function App() {
                 votes: arrayUnion(vote)
             });
 
+            // After submitting vote, reload the election data before showing success
+            await loadElection(electionId);
             setMode('success');
         } catch (err) {
             setError('Error submitting vote');
@@ -206,8 +216,10 @@ function App() {
             <div className="max-w-2xl mx-auto px-4">
                 <Card className="shadow-lg border-slate-200">
                     <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-slate-900">Rank and Approve Vote</CardTitle>
-                        {election?.title && (
+                        <CardTitle className="text-2xl font-bold text-slate-900">
+                            {mode === 'results' ? `Results: ${election?.title || 'Loading...'}` : 'Rank and Approve Vote'}
+                        </CardTitle>
+                        {election?.title && mode !== 'results' && (
                             <p className="text-slate-500 text-sm">{election.title}</p>
                         )}
                     </CardHeader>
@@ -412,7 +424,10 @@ function App() {
                                 <h2 className="text-xl font-bold text-slate-900">Vote Submitted!</h2>
                                 <p className="text-slate-500">Thank you for voting.</p>
                                 <Button
-                                    onClick={() => setMode('results')}
+                                    onClick={() => {
+                                        loadElection(electionId!);  // Reload data before showing results
+                                        setMode('results');
+                                    }}
                                     variant="outline"
                                 >
                                     View Results
@@ -423,8 +438,6 @@ function App() {
                         {mode === 'results' && election && (
                             <ElectionResults election={election} />
                         )}
-
-
                     </CardContent>
                 </Card>
             </div>
