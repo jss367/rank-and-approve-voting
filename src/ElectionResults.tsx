@@ -42,6 +42,8 @@ interface ElectionResultsProps {
 }
 
 const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
+    console.log('ElectionResults rendered with election:', election);
+
     if (!election || !election.candidates || !election.votes) {
         return (
             <Card>
