@@ -4,12 +4,10 @@ import {
     BarChart,
     CartesianGrid,
     ResponsiveContainer,
-    Tooltip,
-    TooltipProps,
     XAxis,
     YAxis
 } from 'recharts';
-import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { Tooltip as RechartsTooltip } from 'recharts/lib/component/Tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
 
 interface Candidate {
@@ -41,6 +39,16 @@ interface ElectionResultsProps {
     election: Election;
 }
 
+type TooltipContentProps = {
+    active?: boolean;
+    payload?: Array<{
+        value: number;
+        name: string;
+        dataKey: string;
+    }>;
+    label?: string;
+};
+
 const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
     // Calculate approval scores
     const approvalScores: ChartData[] = election.candidates.map(candidate => {
@@ -70,18 +78,15 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
         };
     }).sort((a, b) => (b.score || 0) - (a.score || 0));
 
-    const CustomTooltip = ({
-        active,
-        payload,
-        label,
-    }: TooltipProps<ValueType, NameType>) => {
+    const CustomTooltip: React.FC<TooltipContentProps> = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
+            const isApproval = payload[0].dataKey === 'approval';
             return (
                 <div className="bg-white p-2 border border-gray-200 rounded shadow-sm">
                     <p className="font-medium">{label}</p>
                     <p className="text-sm">
                         {payload[0].name}: {payload[0].value}
-                        {payload[0].name === "Approval" ? "%" : " points"}
+                        {isApproval ? "%" : " points"}
                     </p>
                 </div>
             );
@@ -120,7 +125,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <Tooltip content={<CustomTooltip />} />
+                                        <RechartsTooltip content={<CustomTooltip />} />
                                         <Bar dataKey="approval" fill="#22C55E" name="Approval" />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -159,7 +164,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <Tooltip content={<CustomTooltip />} />
+                                        <RechartsTooltip content={<CustomTooltip />} />
                                         <Bar dataKey="score" fill="#3B82F6" name="Score" />
                                     </BarChart>
                                 </ResponsiveContainer>
