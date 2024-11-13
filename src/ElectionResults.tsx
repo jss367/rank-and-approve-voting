@@ -1,45 +1,72 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
 import {
-    BarChart,
     Bar,
-    XAxis,
-    YAxis,
+    BarChart,
     CartesianGrid,
+    ResponsiveContainer,
     Tooltip,
-    ResponsiveContainer
+    XAxis,
+    YAxis
 } from 'recharts';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-const ElectionResults = ({ election }) => {
+interface Candidate {
+    id: string;
+    name: string;
+}
+
+interface Vote {
+    voterName: string;
+    ranking: string[];
+    approved: string[];
+    timestamp: string;
+}
+
+interface Election {
+    title: string;
+    candidates: Candidate[];
+    votes: Vote[];
+    createdAt: string;
+}
+
+interface ChartData {
+    name: string;
+    approval?: number;
+    score?: number;
+}
+
+interface ElectionResultsProps {
+    election: Election;
+}
+
+const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
     // Calculate approval scores
-    const approvalScores = election.candidates.map(candidate => {
-        const approvalCount = election.votes.filter(vote => 
+    const approvalScores: ChartData[] = election.candidates.map(candidate => {
+        const approvalCount = election.votes.filter(vote =>
             vote.approved.includes(candidate.id)
         ).length;
         const approvalPercentage = (approvalCount / election.votes.length) * 100;
-        
+
         return {
             name: candidate.name,
             approval: Number(approvalPercentage.toFixed(1))
         };
-    }).sort((a, b) => b.approval - a.approval);
+    }).sort((a, b) => (b.approval || 0) - (a.approval || 0));
 
     // Calculate Borda count scores
-    // Each candidate gets points based on their position in each voter's ranking
-    // (n-position) points where n is the number of candidates
-    const bordaScores = election.candidates.map(candidate => {
+    const bordaScores: ChartData[] = election.candidates.map(candidate => {
         const totalPoints = election.votes.reduce((sum, vote) => {
             const position = vote.ranking.indexOf(candidate.id);
             const points = election.candidates.length - position - 1;
             return sum + points;
         }, 0);
         const averagePoints = totalPoints / election.votes.length;
-        
+
         return {
             name: candidate.name,
             score: Number(averagePoints.toFixed(1))
         };
-    }).sort((a, b) => b.score - a.score);
+    }).sort((a, b) => (b.score || 0) - (a.score || 0));
 
     return (
         <div className="space-y-8">
@@ -59,16 +86,16 @@ const ElectionResults = ({ election }) => {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={approvalScores}>
                                         <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            angle={-45} 
-                                            textAnchor="end" 
+                                        <XAxis
+                                            dataKey="name"
+                                            angle={-45}
+                                            textAnchor="end"
                                             height={80}
                                         />
-                                        <YAxis 
-                                            label={{ 
-                                                value: 'Approval %', 
-                                                angle: -90, 
+                                        <YAxis
+                                            label={{
+                                                value: 'Approval %',
+                                                angle: -90,
                                                 position: 'insideLeft'
                                             }}
                                         />
@@ -98,17 +125,17 @@ const ElectionResults = ({ election }) => {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={bordaScores}>
                                         <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            angle={-45} 
-                                            textAnchor="end" 
+                                        <XAxis
+                                            dataKey="name"
+                                            angle={-45}
+                                            textAnchor="end"
                                             height={80}
                                         />
-                                        <YAxis 
-                                            label={{ 
-                                                value: 'Average Points', 
-                                                angle: -90, 
-                                                position: 'insideLeft' 
+                                        <YAxis
+                                            label={{
+                                                value: 'Average Points',
+                                                angle: -90,
+                                                position: 'insideLeft'
                                             }}
                                         />
                                         <Tooltip />
