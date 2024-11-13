@@ -99,7 +99,9 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <Tooltip />
+                                        <Tooltip<ChartData, string>
+                                            formatter={(value) => [`${value}%`, 'Approval']}
+                                        />
                                         <Bar dataKey="approval" fill="#22C55E" />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -138,7 +140,9 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                                                 position: 'insideLeft'
                                             }}
                                         />
-                                        <Tooltip />
+                                        <Tooltip<ChartData, string>
+                                            formatter={(value) => [`${value} points`, 'Score']}
+                                        />
                                         <Bar dataKey="score" fill="#3B82F6" />
                                     </BarChart>
                                 </ResponsiveContainer>
