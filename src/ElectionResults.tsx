@@ -1,0 +1,139 @@
+import React from 'react';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+
+const ElectionResults = ({ election }) => {
+    // Calculate approval scores
+    const approvalScores = election.candidates.map(candidate => {
+        const approvalCount = election.votes.filter(vote => 
+            vote.approved.includes(candidate.id)
+        ).length;
+        const approvalPercentage = (approvalCount / election.votes.length) * 100;
+        
+        return {
+            name: candidate.name,
+            approval: Number(approvalPercentage.toFixed(1))
+        };
+    }).sort((a, b) => b.approval - a.approval);
+
+    // Calculate Borda count scores
+    // Each candidate gets points based on their position in each voter's ranking
+    // (n-position) points where n is the number of candidates
+    const bordaScores = election.candidates.map(candidate => {
+        const totalPoints = election.votes.reduce((sum, vote) => {
+            const position = vote.ranking.indexOf(candidate.id);
+            const points = election.candidates.length - position - 1;
+            return sum + points;
+        }, 0);
+        const averagePoints = totalPoints / election.votes.length;
+        
+        return {
+            name: candidate.name,
+            score: Number(averagePoints.toFixed(1))
+        };
+    }).sort((a, b) => b.score - a.score);
+
+    return (
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Election Results: {election.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Total Votes: {election.votes.length}
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-8">
+                        {/* Approval Results */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">Approval Results</h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={approvalScores}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            dataKey="name" 
+                                            angle={-45} 
+                                            textAnchor="end" 
+                                            height={80}
+                                        />
+                                        <YAxis 
+                                            label={{ 
+                                                value: 'Approval %', 
+                                                angle: -90, 
+                                                position: 'insideLeft'
+                                            }}
+                                        />
+                                        <Tooltip />
+                                        <Bar dataKey="approval" fill="#22C55E" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="space-y-2">
+                                {approvalScores.map((result, index) => (
+                                    <div key={result.name} className="flex justify-between items-center">
+                                        <span className="font-medium">
+                                            {index + 1}. {result.name}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {result.approval}% approval
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Ranking Results */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">Ranking Results (Borda Count)</h3>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={bordaScores}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            dataKey="name" 
+                                            angle={-45} 
+                                            textAnchor="end" 
+                                            height={80}
+                                        />
+                                        <YAxis 
+                                            label={{ 
+                                                value: 'Average Points', 
+                                                angle: -90, 
+                                                position: 'insideLeft' 
+                                            }}
+                                        />
+                                        <Tooltip />
+                                        <Bar dataKey="score" fill="#3B82F6" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="space-y-2">
+                                {bordaScores.map((result, index) => (
+                                    <div key={result.name} className="flex justify-between items-center">
+                                        <span className="font-medium">
+                                            {index + 1}. {result.name}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {result.score} avg. points
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+export default ElectionResults;

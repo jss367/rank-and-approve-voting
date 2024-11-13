@@ -15,6 +15,8 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
+import ElectionResults from './ElectionResults';
+
 // Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyD2cDOH0jIstu_e7NxPWpjf1cBb9utmxpU",
@@ -45,7 +47,7 @@ interface Election {
     createdAt: string;
 }
 
-type Mode = 'home' | 'create' | 'vote' | 'success';
+type Mode = 'home' | 'create' | 'vote' | 'success' | 'results';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -303,14 +305,23 @@ function App() {
                                 {shareUrl && (
                                     <div className="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
                                         <p className="mb-2 font-medium text-slate-900">Share this link with voters:</p>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 mb-4">
                                             <Input value={shareUrl} readOnly className="bg-white" />
                                             <Button onClick={copyShareUrl} variant="secondary">
                                                 <Copy className="w-4 h-4" />
                                             </Button>
                                         </div>
+                                        <Button
+                                            onClick={() => setMode('results')}
+                                            variant="outline"
+                                            className="w-full"
+                                        >
+                                            View Results
+                                        </Button>
                                     </div>
                                 )}
+
+
                             </div>
                         )}
 
@@ -391,11 +402,23 @@ function App() {
                         )}
 
                         {mode === 'success' && (
-                            <div className="text-center py-6 space-y-2">
+                            <div className="text-center py-6 space-y-4">
                                 <h2 className="text-xl font-bold text-slate-900">Vote Submitted!</h2>
                                 <p className="text-slate-500">Thank you for voting.</p>
+                                <Button
+                                    onClick={() => setMode('results')}
+                                    variant="outline"
+                                >
+                                    View Results
+                                </Button>
                             </div>
                         )}
+
+                        {mode === 'results' && election && (
+                            <ElectionResults election={election} />
+                        )}
+
+
                     </CardContent>
                 </Card>
             </div>
