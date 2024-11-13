@@ -8,14 +8,13 @@ import {
     getFirestore,
     updateDoc
 } from 'firebase/firestore';
-import { Check, Copy, Grip, Plus, Trash2 } from 'lucide-react';
+import { Check, Circle, Copy, Grip, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { DropResult } from 'react-beautiful-dnd';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
-
 // Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyD2cDOH0jIstu_e7NxPWpjf1cBb9utmxpU",
@@ -199,7 +198,7 @@ function App() {
             <div className="max-w-2xl mx-auto px-4">
                 <Card className="shadow-lg border-slate-200">
                     <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-slate-900">Book Club Vote</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-slate-900">Rank and Approve Vote</CardTitle>
                         {election?.title && (
                             <p className="text-slate-500 text-sm">{election.title}</p>
                         )}
@@ -229,7 +228,7 @@ function App() {
                                     <Input
                                         value={electionTitle}
                                         onChange={(e) => setElectionTitle(e.target.value)}
-                                        placeholder="Election Title (e.g., July Book Selection)"
+                                        placeholder="Election Title"
                                         className="w-full"
                                     />
 
@@ -237,7 +236,7 @@ function App() {
                                         <Input
                                             value={newCandidate}
                                             onChange={(e) => setNewCandidate(e.target.value)}
-                                            placeholder="Add book title..."
+                                            placeholder="Add a candidate..."
                                             onKeyPress={(e) => e.key === 'Enter' && addCandidate()}
                                             className="flex-1"
                                         />
@@ -326,8 +325,8 @@ function App() {
 
                                 <div className="space-y-4">
                                     <div className="text-sm text-slate-500 space-y-1">
-                                        <p>1. Drag to rank the books in your preferred order</p>
-                                        <p>2. Click the checkmark to approve books you'd be happy to read</p>
+                                        <p>1. Drag to rank the candidates in your preferred order</p>
+                                        <p>2. Click the checkmark to approve candidates you'd be happy with</p>
                                     </div>
 
                                     <DragDropContext onDragEnd={handleDragEnd}>
@@ -361,9 +360,13 @@ function App() {
                                                                         variant={approvedCandidates.has(candidate.id) ? "default" : "outline"}
                                                                         size="sm"
                                                                         onClick={() => toggleApproval(candidate.id)}
-                                                                        className={approvedCandidates.has(candidate.id) ? "bg-green-600 hover:bg-green-700" : ""}
+                                                                        className={approvedCandidates.has(candidate.id) ? "bg-green-600 hover:bg-green-700" : "text-slate-500"}
                                                                     >
-                                                                        <Check className="w-4 h-4" />
+                                                                        {approvedCandidates.has(candidate.id) ? (
+                                                                            <Check className="w-4 h-4" />
+                                                                        ) : (
+                                                                            <Circle className="w-4 h-4" />
+                                                                        )}
                                                                     </Button>
                                                                 </div>
                                                             )}
