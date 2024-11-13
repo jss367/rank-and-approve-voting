@@ -1,6 +1,20 @@
 # rank-and-approve-voting
 The code for my firebase app
 
+## Testing (Run locally)
+
+`npm start`
+
+
+## Push to production
+
+Build the production version:
+* `npm run build`
+
+Deploy to firebase:
+* `firebase deploy`
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
