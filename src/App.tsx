@@ -68,10 +68,16 @@ function App() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('id');
+        const view = params.get('view');
+
         if (id) {
             setElectionId(id);
             loadElection(id);
-            setMode('vote');
+            if (view === 'results') {
+                setMode('results');
+            } else {
+                setMode('vote');
+            }
         }
     }, []);
 

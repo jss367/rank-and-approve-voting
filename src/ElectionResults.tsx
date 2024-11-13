@@ -42,6 +42,21 @@ interface ElectionResultsProps {
 }
 
 const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
+    if (!election || !election.candidates || !election.votes) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>No election data available</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                        Please check the URL and try again.
+                    </p>
+                </CardContent>
+            </Card>
+        );
+    }
+
     // Calculate approval scores
     const approvalScores: ChartData[] = election.candidates.map(candidate => {
         const approvalCount = election.votes.filter(vote =>
@@ -85,31 +100,31 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Approval Results</h3>
                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={approvalScores}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="name"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={80}
-                                        />
-                                        <YAxis
-                                            label={{
-                                                value: 'Approval %',
-                                                angle: -90,
-                                                position: 'insideLeft'
-                                            }}
-                                        />
-                                        <Tooltip
-                                            formatter={(value: any) => [`${value}%`, 'Approval']}
-                                        />
-                                        <Bar
-                                            dataKey="approval"
-                                            fill="#22C55E"
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {approvalScores.length > 0 && (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={approvalScores}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="name"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={80}
+                                            />
+                                            <YAxis
+                                                label={{
+                                                    value: 'Approval %',
+                                                    angle: -90,
+                                                    position: 'insideLeft'
+                                                }}
+                                            />
+                                            <Tooltip />
+                                            <Bar
+                                                dataKey="approval"
+                                                fill="#22C55E"
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 {approvalScores.map((result, index) => (
@@ -129,31 +144,31 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ election }) => {
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Ranking Results (Borda Count)</h3>
                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={bordaScores}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="name"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={80}
-                                        />
-                                        <YAxis
-                                            label={{
-                                                value: 'Average Points',
-                                                angle: -90,
-                                                position: 'insideLeft'
-                                            }}
-                                        />
-                                        <Tooltip
-                                            formatter={(value: any) => [`${value} points`, 'Score']}
-                                        />
-                                        <Bar
-                                            dataKey="score"
-                                            fill="#3B82F6"
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {bordaScores.length > 0 && (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={bordaScores}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="name"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={80}
+                                            />
+                                            <YAxis
+                                                label={{
+                                                    value: 'Average Points',
+                                                    angle: -90,
+                                                    position: 'insideLeft'
+                                                }}
+                                            />
+                                            <Tooltip />
+                                            <Bar
+                                                dataKey="score"
+                                                fill="#3B82F6"
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 {bordaScores.map((result, index) => (
