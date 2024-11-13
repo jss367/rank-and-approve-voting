@@ -15,6 +15,8 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
+import ElectionResults from './ElectionResults';
+
 // Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyD2cDOH0jIstu_e7NxPWpjf1cBb9utmxpU",
@@ -45,7 +47,7 @@ interface Election {
     createdAt: string;
 }
 
-type Mode = 'home' | 'create' | 'vote' | 'success';
+type Mode = 'home' | 'create' | 'vote' | 'success' | 'results';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -66,16 +68,35 @@ function App() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('id');
+        const view = params.get('view');
+
         if (id) {
             setElectionId(id);
             loadElection(id);
-            setMode('vote');
+            if (view === 'results') {
+                console.log('Setting mode to results:', {
+                    mode,
+                    electionId,
+                    election
+                });
+                setMode('results');;
+            } else {
+                setMode('vote');
+            }
         }
     }, []);
+
+    // Add new useEffect to reload election data when switching to results mode
+    useEffect(() => {
+        if (mode === 'results' && electionId) {
+            loadElection(electionId);
+        }
+    }, [mode, electionId]);
 
     const loadElection = async (id: string) => {
         try {
             setLoading(true);
+            setError(''); // Clear any existing errors
             const electionDoc = await getDoc(doc(db, 'elections', id));
             if (electionDoc.exists()) {
                 const data = electionDoc.data() as Election;
@@ -134,6 +155,8 @@ function App() {
                 votes: arrayUnion(vote)
             });
 
+            // After submitting vote, reload the election data before showing success
+            await loadElection(electionId);
             setMode('success');
         } catch (err) {
             setError('Error submitting vote');
@@ -198,8 +221,10 @@ function App() {
             <div className="max-w-2xl mx-auto px-4">
                 <Card className="shadow-lg border-slate-200">
                     <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-slate-900">Rank and Approve Vote</CardTitle>
-                        {election?.title && (
+                        <CardTitle className="text-2xl font-bold text-slate-900">
+                            {mode === 'results' ? `Results: ${election?.title || 'Loading...'}` : 'Rank and Approve Vote'}
+                        </CardTitle>
+                        {election?.title && mode !== 'results' && (
                             <p className="text-slate-500 text-sm">{election.title}</p>
                         )}
                     </CardHeader>
@@ -303,14 +328,23 @@ function App() {
                                 {shareUrl && (
                                     <div className="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
                                         <p className="mb-2 font-medium text-slate-900">Share this link with voters:</p>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 mb-4">
                                             <Input value={shareUrl} readOnly className="bg-white" />
                                             <Button onClick={copyShareUrl} variant="secondary">
                                                 <Copy className="w-4 h-4" />
                                             </Button>
                                         </div>
+                                        <Button
+                                            onClick={() => setMode('results')}
+                                            variant="outline"
+                                            className="w-full"
+                                        >
+                                            View Results
+                                        </Button>
                                     </div>
                                 )}
+
+
                             </div>
                         )}
 
@@ -391,10 +425,23 @@ function App() {
                         )}
 
                         {mode === 'success' && (
-                            <div className="text-center py-6 space-y-2">
+                            <div className="text-center py-6 space-y-4">
                                 <h2 className="text-xl font-bold text-slate-900">Vote Submitted!</h2>
                                 <p className="text-slate-500">Thank you for voting.</p>
+                                <Button
+                                    onClick={() => {
+                                        loadElection(electionId!);  // Reload data before showing results
+                                        setMode('results');
+                                    }}
+                                    variant="outline"
+                                >
+                                    View Results
+                                </Button>
                             </div>
+                        )}
+
+                        {mode === 'results' && election && (
+                            <ElectionResults election={election} />
                         )}
                     </CardContent>
                 </Card>
