@@ -15,10 +15,13 @@ export const getPairwiseResults = (election: Election): PairwiseResult[] => {
         const pos1 = vote.ranking.indexOf(candidate1.id);
         const pos2 = vote.ranking.indexOf(candidate2.id);
 
-        if (pos1 < pos2) {
-          candidate1Wins++;
-        } else if (pos2 < pos1) {
-          candidate2Wins++;
+        // Only count if both candidates are ranked
+        if (pos1 !== -1 && pos2 !== -1) {
+          if (pos1 < pos2) {
+            candidate1Wins++;
+          } else {
+            candidate2Wins++;
+          }
         }
       });
 
@@ -51,47 +54,57 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
         margin: result.candidate2Votes - result.candidate1Votes
       });
     }
+    // In case of a tie, no victory is recorded
   });
 
   return victories;
 };
 
 export const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
-  // Get unique candidates from victories
-  const candidates = new Set(
-    victories.flatMap(v => [v.winner, v.loser])
-  );
+  // Get unique candidates
+  const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
+  if (candidates.length === 0) return [];
 
-  const defeats: Record<string, string[]> = {};
-
-  // Initialize defeats object
-  candidates.forEach(candidate => {
-    defeats[candidate] = [];
-  });
-
+  // Create defeats matrix
+  const defeats: Record<string, Set<string>> = {};
+  candidates.forEach(c => defeats[c] = new Set());
+  
   // Record who defeats whom
-  victories.forEach(result => {
-    defeats[result.winner].push(result.loser);
-  });
+  victories.forEach(v => defeats[v.winner].add(v.loser));
 
-  // Find candidates that are beaten by everyone not in the current set
-  const findBeatenByAll = (candidateSet: Set<string>): string[] => {
-    return Array.from(candidateSet).filter(candidate => {
-      const others = Array.from(candidateSet).filter(c => c !== candidate);
-      return others.every(other =>
-        defeats[other].includes(candidate) && !defeats[candidate].includes(other)
-      );
-    });
+  // Find smallest set where each member beats all non-members
+  const isValidSmithSet = (set: Set<string>): boolean => {
+    const nonMembers = candidates.filter(c => !set.has(c));
+    return Array.from(set).every(member => 
+      nonMembers.every(nonMember => 
+        defeats[member].has(nonMember) || !defeats[nonMember].has(member)
+      )
+    );
   };
 
-  // Iteratively remove candidates beaten by all others until no more can be removed
-  let currentSet = new Set(candidates);
-  let beatenCandidates: string[];
+  // Try all possible subsets, starting with smallest
+  for (let size = 1; size <= candidates.length; size++) {
+    // Generate all subsets of current size
+    const trySubset = (current: Set<string>, start: number) => {
+      if (current.size === size) {
+        if (isValidSmithSet(current)) {
+          return Array.from(current);
+        }
+        return null;
+      }
 
-  do {
-    beatenCandidates = findBeatenByAll(currentSet);
-    beatenCandidates.forEach(candidate => currentSet.delete(candidate));
-  } while (beatenCandidates.length > 0);
+      for (let i = start; i < candidates.length; i++) {
+        current.add(candidates[i]);
+        const result = trySubset(current, i + 1);
+        if (result) return result;
+        current.delete(candidates[i]);
+      }
+      return null;
+    };
 
-  return Array.from(currentSet);
+    const result = trySubset(new Set(), 0);
+    if (result) return result;
+  }
+
+  return candidates; // If no smaller valid set found, return all candidates
 };
