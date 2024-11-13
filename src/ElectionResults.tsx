@@ -1,33 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card';
-
-interface Candidate {
-    id: string;
-    name: string;
-}
-
-interface Vote {
-    voterName: string;
-    ranking: string[];
-    approved: string[];
-    timestamp: string;
-}
-
-interface Election {
-    title: string;
-    candidates: Candidate[];
-    votes: Vote[];
-    createdAt: string;
-}
-
-interface PairwiseResult {
-    candidate1: string;
-    candidate2: string;
-    candidate1Votes: number;
-    candidate2Votes: number;
-}
-
-// ... other interfaces remain the same ...
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+import { getPairwiseResults, getHeadToHeadVictories, calculateSmithSet } from './utils/ElectionUtils';
+import { Election } from './types';
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
@@ -45,109 +19,15 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         );
     }
 
-    // Calculate pairwise comparisons for all candidate pairs
-    const getPairwiseResults = () => {
-        const results: PairwiseResult[] = [];
-
-        for (let i = 0; i < election.candidates.length; i++) {
-            for (let j = i + 1; j < election.candidates.length; j++) {
-                const candidate1 = election.candidates[i];
-                const candidate2 = election.candidates[j];
-
-                let candidate1Wins = 0;
-                let candidate2Wins = 0;
-
-                election.votes.forEach(vote => {
-                    const pos1 = vote.ranking.indexOf(candidate1.id);
-                    const pos2 = vote.ranking.indexOf(candidate2.id);
-
-                    if (pos1 < pos2) {
-                        candidate1Wins++;
-                    } else if (pos2 < pos1) {
-                        candidate2Wins++;
-                    }
-                });
-
-                results.push({
-                    candidate1: candidate1.name,
-                    candidate2: candidate2.name,
-                    candidate1Votes: candidate1Wins,
-                    candidate2Votes: candidate2Wins
-                });
-            }
-        }
-
-        return results;
-    };
-
-    // Convert pairwise results to head-to-head victories for Smith set calculation
-    const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
-        const victories: { winner: string; loser: string; margin: number }[] = [];
-
-        pairwiseResults.forEach(result => {
-            if (result.candidate1Votes > result.candidate2Votes) {
-                victories.push({
-                    winner: result.candidate1,
-                    loser: result.candidate2,
-                    margin: result.candidate1Votes - result.candidate2Votes
-                });
-            } else if (result.candidate2Votes > result.candidate1Votes) {
-                victories.push({
-                    winner: result.candidate2,
-                    loser: result.candidate1,
-                    margin: result.candidate2Votes - result.candidate1Votes
-                });
-            }
-        });
-
-        return victories;
-    };
-
-    // Calculate Smith set based on victories
-    const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
-        const candidates = new Set(election.candidates.map(c => c.name));
-        const defeats: Record<string, string[]> = {};
-
-        // Initialize defeats object
-        candidates.forEach(candidate => {
-            defeats[candidate] = [];
-        });
-
-        // Record who defeats whom
-        victories.forEach(result => {
-            defeats[result.winner].push(result.loser);
-        });
-
-        // Find candidates that are beaten by everyone not in the current set
-        const findBeatenByAll = (candidateSet: Set<string>): string[] => {
-            return Array.from(candidateSet).filter(candidate => {
-                const others = Array.from(candidateSet).filter(c => c !== candidate);
-                return others.every(other =>
-                    defeats[other].includes(candidate) && !defeats[candidate].includes(other)
-                );
-            });
-        };
-
-        // Iteratively remove candidates beaten by all others until no more can be removed
-        let currentSet = new Set(candidates);
-        let beatenCandidates: string[];
-
-        do {
-            beatenCandidates = findBeatenByAll(currentSet);
-            beatenCandidates.forEach(candidate => currentSet.delete(candidate));
-        } while (beatenCandidates.length > 0);
-
-        return Array.from(currentSet);
-    };
-
-    const pairwiseResults = getPairwiseResults();
+    // Get all the calculated results using our utility functions
+    const pairwiseResults = getPairwiseResults(election);
     const victories = getHeadToHeadVictories(pairwiseResults);
     const smithSet = calculateSmithSet(victories);
 
     // Calculate approval scores
     const approvalScores = election.candidates.map(candidate => ({
         name: candidate.name,
-        approval: election.votes.filter(vote =>
+        approval: election.votes.filter(vote => 
             vote.approved.includes(candidate.id)
         ).length
     })).sort((a, b) => b.approval - a.approval);
@@ -190,7 +70,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                 <td className="py-2 pl-4">{result.candidate2}</td>
                                                 <td className="text-right py-2">{result.candidate2Votes}</td>
                                                 <td className="text-right py-2 font-medium">
-                                                    {result.candidate1Votes > result.candidate2Votes
+                                                    {result.candidate1Votes > result.candidate2Votes 
                                                         ? result.candidate1
                                                         : result.candidate2Votes > result.candidate1Votes
                                                             ? result.candidate2
