@@ -9,7 +9,7 @@ import {
     updateDoc
 } from 'firebase/firestore';
 import { Check, Circle, Copy, Grip, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DropResult } from 'react-beautiful-dnd';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { Button } from './components/ui/button';
@@ -65,35 +65,7 @@ function App() {
     const [error, setError] = useState('');
     const [shareUrl, setShareUrl] = useState('');
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
-        const view = params.get('view');
-
-        if (id) {
-            setElectionId(id);
-            loadElection(id);
-            if (view === 'results') {
-                console.log('Setting mode to results:', {
-                    mode,
-                    electionId,
-                    election
-                });
-                setMode('results');;
-            } else {
-                setMode('vote');
-            }
-        }
-    }, []);
-
-    // Add new useEffect to reload election data when switching to results mode
-    useEffect(() => {
-        if (mode === 'results' && electionId) {
-            loadElection(electionId);
-        }
-    }, [mode, electionId]);
-
-    const loadElection = async (id: string) => {
+    const loadElection = useCallback(async (id: string) => {
         try {
             setLoading(true);
             setError(''); // Clear any existing errors
@@ -111,7 +83,29 @@ function App() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        const view = params.get('view');
+
+        if (id) {
+            setElectionId(id);
+            loadElection(id);
+            if (view === 'results') {
+                setMode('results');
+            } else {
+                setMode('vote');
+            }
+        }
+    }, [loadElection]);
+
+    useEffect(() => {
+        if (mode === 'results' && electionId) {
+            loadElection(electionId);
+        }
+    }, [mode, electionId, loadElection]);
 
     const createElection = async () => {
         try {
@@ -155,7 +149,6 @@ function App() {
                 votes: arrayUnion(vote)
             });
 
-            // After submitting vote, reload the election data before showing success
             await loadElection(electionId);
             setMode('success');
         } catch (err) {
