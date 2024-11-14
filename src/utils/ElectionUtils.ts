@@ -46,7 +46,6 @@ export const getPairwiseResults = (election: Election): PairwiseResult[] => {
 };
 
 export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
-  // Process each pairwise result and record victories
   const victories: { winner: string; loser: string; margin: number }[] = [];
 
   pairwiseResults.forEach(result => {
@@ -62,8 +61,21 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
         loser: result.candidate1,
         margin: result.candidate2Votes - result.candidate1Votes
       });
+    } else {
+      // It's a tie - add both directions with margin 0
+      victories.push(
+        {
+          winner: result.candidate1,
+          loser: result.candidate2,
+          margin: 0
+        },
+        {
+          winner: result.candidate2,
+          loser: result.candidate1,
+          margin: 0
+        }
+      );
     }
-    // Ties don't create a victory
   });
 
   // Sort by winner name for consistent test results
@@ -71,14 +83,15 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
 };
 
 export const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
-  if (victories.length === 0) {
-    const candidateNames = new Set<string>();
-    victories.forEach(v => {
-      candidateNames.add(v.winner);
-      candidateNames.add(v.loser);
-    });
-    // If no victories, everyone is in Smith set
-    return Array.from(candidateNames).sort();
+  // Get all candidates (now we're guaranteed to have them all because ties are included)
+  const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
+
+  // Only consider non-tie victories for dominance
+  const realVictories = victories.filter(v => v.margin > 0);
+
+  // If no real victories (only ties), everyone is in the Smith set
+  if (realVictories.length === 0) {
+    return candidates.sort();
   }
 
   // Get all unique candidates
