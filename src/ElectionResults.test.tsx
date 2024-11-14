@@ -74,7 +74,22 @@ describe('Election Result Calculations', () => {
             {
                 winner: "Candidate 1",
                 loser: "Candidate 2",
-                margin: 1
+                margin: 2
+            },
+            {
+                winner: "Candidate 1",
+                loser: "Candidate 3",
+                margin: 0
+            },
+            {
+                winner: "Candidate 2",
+                loser: "Candidate 3",
+                margin: 2
+            },
+            {
+                winner: "Candidate 3",
+                loser: "Candidate 1",
+                margin: 0
             }
         ]);
     });
