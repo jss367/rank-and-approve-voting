@@ -83,98 +83,70 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
 };
 
 export const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
-  // Get all candidates (now we're guaranteed to have them all because ties are included)
+  // Get all candidates
   const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
 
-  // Only consider non-tie victories for dominance
-  const realVictories = victories.filter(v => v.margin > 0);
+  // Create defeat graph including ties
+  const defeats = new Map<string, Map<string, number>>();
+  candidates.forEach(c => defeats.set(c, new Map()));
 
-  // If no real victories (only ties), everyone is in the Smith set
-  if (realVictories.length === 0) {
-    return candidates.sort();
-  }
-
-  // Create defeat graph
-  const defeats = new Map<string, Set<string>>();
-  candidates.forEach(c => defeats.set(c, new Set()));
-  realVictories.forEach(v => defeats.get(v.winner)?.add(v.loser));
-
-  // Find strongly connected components (SCCs)
-  const visited = new Set<string>();
-  const stack: string[] = [];
-  const onStack = new Set<string>();
-  const sccs: Set<string>[] = [];
-  let index = 0;
-  const indices = new Map<string, number>();
-  const lowlink = new Map<string, number>();
-
-  function tarjan(v: string) {
-    indices.set(v, index);
-    lowlink.set(v, index);
-    index++;
-    stack.push(v);
-    onStack.add(v);
-
-    // Consider successors
-    const successors = defeats.get(v) || new Set();
-    for (const w of successors) {
-      if (!indices.has(w)) {
-        // Successor w has not yet been visited; recurse on it
-        tarjan(w);
-        lowlink.set(v, Math.min(lowlink.get(v)!, lowlink.get(w)!));
-      } else if (onStack.has(w)) {
-        // Successor w is in stack and hence in the current SCC
-        lowlink.set(v, Math.min(lowlink.get(v)!, indices.get(w)!));
-      }
-    }
-
-    // If v is a root node, pop the stack and generate an SCC
-    if (lowlink.get(v) === indices.get(v)) {
-      const scc = new Set<string>();
-      let w: string;
-      do {
-        w = stack.pop()!;
-        onStack.delete(w);
-        scc.add(w);
-      } while (w !== v);
-      if (scc.size > 0) {
-        sccs.push(scc);
-      }
-    }
-  }
-
-  // Run Tarjan's algorithm to find SCCs
-  candidates.forEach(v => {
-    if (!indices.has(v)) {
-      tarjan(v);
-    }
+  // Fill in all victories and ties
+  victories.forEach(v => {
+    // Store the margin of victory/tie
+    defeats.get(v.winner)?.set(v.loser, v.margin);
   });
 
-  // Identify SCCs with no incoming edges from outside the SCC
-  const smithSetCandidates = new Set<string>();
+  // Helper function: does A beat or tie with B?
+  const beatsOrTies = (a: string, b: string): boolean => {
+    const margin = defeats.get(a)?.get(b);
+    return margin !== undefined && margin >= 0;
+  };
 
-  for (const scc of sccs) {
-    let hasIncomingEdges = false;
+  // Helper function: does A strictly beat B?
+  const strictlyBeats = (a: string, b: string): boolean => {
+    const margin = defeats.get(a)?.get(b);
+    return margin !== undefined && margin > 0;
+  };
 
-    // Check if any candidate in this SCC is defeated by a candidate outside the SCC
-    for (const candidate of scc) {
-      for (const otherCandidate of candidates) {
-        if (!scc.has(otherCandidate) && defeats.get(otherCandidate)?.has(candidate)) {
-          hasIncomingEdges = true;
-          break;
-        }
-      }
-      if (hasIncomingEdges) break;
-    }
+  // Helper function: can candidate A reach candidate B through victories or ties?
+  const canReach = (start: string, target: string, visited = new Set<string>()): boolean => {
+    if (start === target) return true;
+    if (visited.has(start)) return false;
 
-    // If no incoming edges from outside, add this SCC to the Smith Set
-    if (!hasIncomingEdges) {
-      for (const candidate of scc) {
-        smithSetCandidates.add(candidate);
-      }
-    }
-  }
+    visited.add(start);
+    const neighbors = Array.from(candidates).filter(c => beatsOrTies(start, c));
 
-  // Return the Smith Set as a sorted array
-  return Array.from(smithSetCandidates).sort();
+    return neighbors.some(n => canReach(n, target, visited));
+  };
+
+  // A candidate should be in the Smith set if:
+  // 1. It can reach every other candidate through a path of victories/ties
+  // 2. No candidate outside the set strictly beats all candidates in the set
+  const isInSmithSet = (candidate: string): boolean => {
+    // Can this candidate reach all others?
+    const canReachAll = candidates.every(other =>
+      candidate === other || canReach(candidate, other)
+    );
+
+    // Is this candidate part of a mutual-reachability group?
+    const mutuallyReachable = candidates.filter(other =>
+      candidate === other ||
+      (canReach(candidate, other) && canReach(other, candidate))
+    );
+
+    // No candidate outside the mutually reachable group should
+    // strictly beat everyone in the group
+    const noOutsideDomination = candidates.every(outside =>
+      mutuallyReachable.includes(outside) ||
+      !mutuallyReachable.every(inside => strictlyBeats(outside, inside))
+    );
+
+    return canReachAll && noOutsideDomination;
+  };
+
+  // Calculate Smith set
+  const smithSet = candidates.filter(isInSmithSet);
+
+  // If empty (shouldn't happen with valid input), return all candidates
+  return smithSet.length > 0 ? smithSet.sort() : candidates.sort();
 };

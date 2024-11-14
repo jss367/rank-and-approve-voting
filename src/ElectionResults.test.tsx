@@ -66,7 +66,7 @@ describe('Election Result Calculations', () => {
         ]);
     });
 
-    test.skip('calculates head-to-head victories correctly', () => {
+    test('calculates head-to-head victories correctly', () => {
         const pairwise = getPairwiseResults(threeWayTestElection);
         const victories = getHeadToHeadVictories(pairwise);
 
