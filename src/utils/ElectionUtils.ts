@@ -94,13 +94,10 @@ export const calculateSmithSet = (victories: { winner: string; loser: string; ma
     return candidates.sort();
   }
 
-  // Get all unique candidates
-  const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
-
   // Create defeat graph
   const defeats = new Map<string, Set<string>>();
   candidates.forEach(c => defeats.set(c, new Set()));
-  victories.forEach(v => defeats.get(v.winner)?.add(v.loser));
+  realVictories.forEach(v => defeats.get(v.winner)?.add(v.loser));
 
   // Find strongly connected components (SCCs)
   const visited = new Set<string>();
