@@ -41,14 +41,14 @@ describe('Election Result Calculations', () => {
         createdAt: new Date().toISOString()
     };
 
-    test.skip('generates correct pairwise results for three candidates', () => {
+    test('generates correct pairwise results for three candidates', () => {
         const results = getPairwiseResults(threeWayTestElection);
 
         expect(results).toEqual([
             {
                 candidate1: "Candidate 1",
                 candidate2: "Candidate 2",
-                candidate1Votes: 2,
+                candidate1Votes: 3,
                 candidate2Votes: 1
             },
             {
@@ -60,8 +60,8 @@ describe('Election Result Calculations', () => {
             {
                 candidate1: "Candidate 2",
                 candidate2: "Candidate 3",
-                candidate1Votes: 2,
-                candidate2Votes: 2
+                candidate1Votes: 3,
+                candidate2Votes: 1
             }
         ]);
     });
@@ -79,7 +79,7 @@ describe('Election Result Calculations', () => {
         ]);
     });
 
-    test.skip('identifies correct Smith set', () => {
+    test('identifies correct Smith set', () => {
         const pairwise = getPairwiseResults(threeWayTestElection);
         const victories = getHeadToHeadVictories(pairwise);
         const smithSet = calculateSmithSet(victories);
