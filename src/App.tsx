@@ -64,6 +64,8 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [shareUrl, setShareUrl] = useState('');
+    // Add resultsUrl to the state
+    const [resultsUrl, setResultsUrl] = useState('');
 
     const loadElection = useCallback(async (id: string) => {
         try {
@@ -118,12 +120,13 @@ function App() {
             };
 
             const docRef = await addDoc(collection(db, 'elections'), electionData);
-            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
-            setShareUrl(shareUrl);
+            const votingUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
+            const resultsUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}&view=results`;
+            setShareUrl(votingUrl);
+            setResultsUrl(resultsUrl); // Store the results URL in state
             setElectionId(docRef.id);
         } catch (err) {
-            setError('Error creating election');
-            console.error(err);
+            // ... error handling
         } finally {
             setLoading(false);
         }
@@ -195,10 +198,6 @@ function App() {
         items.splice(result.destination.index, 0, reorderedItem);
 
         setCandidates(items);
-    };
-
-    const copyShareUrl = () => {
-        navigator.clipboard.writeText(shareUrl);
     };
 
     if (loading) {
@@ -323,17 +322,17 @@ function App() {
                                         <p className="mb-2 font-medium text-slate-900">Share this link with voters:</p>
                                         <div className="flex gap-2 mb-4">
                                             <Input value={shareUrl} readOnly className="bg-white" />
-                                            <Button onClick={copyShareUrl} variant="secondary">
+                                            <Button onClick={() => navigator.clipboard.writeText(shareUrl)} variant="secondary">
                                                 <Copy className="w-4 h-4" />
                                             </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => setMode('results')}
-                                            variant="outline"
-                                            className="w-full"
-                                        >
-                                            View Results
-                                        </Button>
+                                        <p className="mb-2 font-medium text-slate-900">Results URL:</p>
+                                        <div className="flex gap-2">
+                                            <Input value={resultsUrl} readOnly className="bg-white" />
+                                            <Button onClick={() => navigator.clipboard.writeText(resultsUrl)} variant="secondary">
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -421,15 +420,6 @@ function App() {
                             <div className="text-center py-6 space-y-4">
                                 <h2 className="text-xl font-bold text-slate-900">Vote Submitted!</h2>
                                 <p className="text-slate-500">Thank you for voting.</p>
-                                <Button
-                                    onClick={() => {
-                                        loadElection(electionId!);  // Reload data before showing results
-                                        setMode('results');
-                                    }}
-                                    variant="outline"
-                                >
-                                    View Results
-                                </Button>
                             </div>
                         )}
 
