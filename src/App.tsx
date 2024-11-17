@@ -11,7 +11,7 @@ import {
 import { Check, Circle, Copy, Grip, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { DropResult } from 'react-beautiful-dnd';
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
@@ -64,7 +64,6 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [shareUrl, setShareUrl] = useState('');
-    // Add resultsUrl to the state
     const [resultsUrl, setResultsUrl] = useState('');
 
     const loadElection = useCallback(async (id: string) => {
@@ -191,7 +190,9 @@ function App() {
     };
 
     const handleDragEnd = (result: DropResult) => {
-        if (!result.destination) return;
+        if (!result.destination) {
+            return;
+        }
 
         const items = Array.from(candidates);
         const [reorderedItem] = items.splice(result.source.index, 1);
