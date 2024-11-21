@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
-import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users, Star, Swords} from 'lucide-react';
+import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users, Star, Swords } from 'lucide-react';
 import { Election, Candidate, Vote } from './types';
 import type { CandidateScore } from './utils/ElectionUtils';
 import {
@@ -104,8 +104,8 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </div>
             </div>
 
-{/* Results Grid */}
-<div className="grid gap-6">
+            {/* Results Grid */}
+            <div className="grid gap-6">
                 {rankedCandidates.map((candidate: CandidateScore, index: number) => {
                     const isFirstPlace = candidate.rank === 1;
                     const hasTie = candidate.isTied;
@@ -115,10 +115,10 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         <div
                             key={candidate.name}
                             className={`transform transition-all duration-200 hover:scale-[1.02] ${isFirstPlace
-                                    ? hasTie
-                                        ? "bg-gradient-to-br from-amber-50 to-yellow-50 shadow-yellow-100"
-                                        : "bg-gradient-to-br from-emerald-50 to-green-50 shadow-emerald-100"
-                                    : "bg-gradient-to-br from-slate-50 to-gray-50"
+                                ? hasTie
+                                    ? "bg-gradient-to-br from-amber-50 to-yellow-50 shadow-yellow-100"
+                                    : "bg-gradient-to-br from-emerald-50 to-green-50 shadow-emerald-100"
+                                : "bg-gradient-to-br from-slate-50 to-gray-50"
                                 } rounded-xl shadow-lg border border-slate-200 overflow-hidden`}
                         >
                             <div className="p-6 space-y-4">
@@ -132,8 +132,8 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                             </h2>
                                         </div>
                                         <p className={`text-sm font-medium ${isFirstPlace
-                                                ? hasTie ? "text-yellow-700" : "text-green-700"
-                                                : "text-slate-600"
+                                            ? hasTie ? "text-yellow-700" : "text-green-700"
+                                            : "text-slate-600"
                                             }`}>
                                             {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
                                         </p>
@@ -177,10 +177,10 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
 
                                 {/* Details */}
                                 <div className={`space-y-2 font-mono rounded-lg p-4 ${isFirstPlace
-                                        ? hasTie
-                                            ? "bg-yellow-100/50 text-yellow-800"
-                                            : "bg-green-100/50 text-green-800"
-                                        : "bg-slate-100/50 text-slate-700"
+                                    ? hasTie
+                                        ? "bg-yellow-100/50 text-yellow-800"
+                                        : "bg-green-100/50 text-green-800"
+                                    : "bg-slate-100/50 text-slate-700"
                                     }`}>
                                     {descriptionParts.map((part, idx) => (
                                         <p key={idx} className="text-sm">
@@ -244,7 +244,10 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                     <CardContent>
                         <p className="text-sm text-purple-900 mb-4">
                             The Smith set contains the smallest group of candidates who collectively beat all other candidates.
-                            These {smithSet.length} candidates were selected for final ranking:
+                            {smithSet.length === 1 ?
+                                "This candidate was selected for final ranking:" :
+                                `These ${smithSet.length} candidates were selected for final ranking:`
+                            }
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {smithSet.map((candidate) => (
