@@ -6,13 +6,15 @@ interface Victory {
     margin: number;
 }
 
-interface CandidateScore {
-    name: string;
-    netVictories: number;
-    avgMargin: number;
-    approvalScore: number;
-    totalScore: number;
-    description: string;
+export interface CandidateScore {
+  name: string;
+  netVictories: number;
+  wins: number;
+  losses: number;
+  avgMargin: number;
+  approvalScore: number;
+  totalScore: number;
+  description: string;
 }
 
 export const getPairwiseResults = (election: Election): PairwiseResult[] => {
@@ -133,51 +135,57 @@ export const calculateSmithSet = (victories: Victory[]): string[] => {
 };
 
 export const selectWinner = (
-    smithSet: string[], 
-    victories: Victory[], 
-    election: Election
-): CandidateScore => {
-    const scores: CandidateScore[] = smithSet.map(candidate => {
-        // Calculate net victories
-        const wins = victories.filter(v => v.winner === candidate).length;
-        const losses = victories.filter(v => v.loser === candidate).length;
-        const netVictories = wins - losses;
-        
-        // Calculate average margin
-        const margins = victories
-            .filter(v => v.winner === candidate || v.loser === candidate)
-            .map(v => v.winner === candidate ? v.margin : -v.margin);
-        const avgMargin = margins.length > 0 
-            ? margins.reduce((sum, m) => sum + m, 0) / margins.length
-            : 0;
-        
-        // Calculate approval score
-        const candidateId = election.candidates.find(c => c.name === candidate)?.id || '';
-        const approvalScore = election.votes.filter(vote => 
-            vote.approved.includes(candidateId)
-        ).length;
+  smithSet: string[], 
+  victories: Victory[], 
+  election: Election,
+  returnAllScores: boolean = false
+): CandidateScore | CandidateScore[] => {
+  const scores: CandidateScore[] = smithSet.map(candidate => {
+      // Calculate wins and losses
+      const wins = victories.filter(v => v.winner === candidate).length;
+      const losses = victories.filter(v => v.loser === candidate).length;
+      const netVictories = wins - losses;
+      
+      // Calculate average margin
+      const margins = victories
+          .filter(v => v.winner === candidate || v.loser === candidate)
+          .map(v => v.winner === candidate ? v.margin : -v.margin);
+      const avgMargin = margins.length > 0 
+          ? margins.reduce((sum, m) => sum + m, 0) / margins.length
+          : 0;
+      
+      // Calculate approval score
+      const candidateId = election.candidates.find(c => c.name === candidate)?.id || '';
+      const approvalScore = election.votes.filter(vote => 
+          vote.approved.includes(candidateId)
+      ).length;
 
-        // Calculate weighted total (adjust weights as needed)
-        const totalScore = (netVictories * 0.4) + (avgMargin * 0.3) + (approvalScore * 0.3);
-        
-        // Create description of the scoring
-        const description = [
-            `Net Head-to-Head Victories: ${netVictories} (${wins} wins, ${losses} losses)`,
-            `Average Victory Margin: ${avgMargin.toFixed(2)}`,
-            `Approval Votes: ${approvalScore}`,
-            `Total Score: ${totalScore.toFixed(2)} (weighted combination)`
-        ].join('\n');
+      // Calculate weighted total
+      const totalScore = (netVictories * 0.4) + (avgMargin * 0.3) + (approvalScore * 0.3);
+      
+      // Create description
+      const description = [
+          `Net Head-to-Head Victories: ${netVictories} (${wins} wins, ${losses} losses)`,
+          `Average Victory Margin: ${avgMargin.toFixed(2)}`,
+          `Approval Votes: ${approvalScore}`,
+          `Total Score: ${totalScore.toFixed(2)} (weighted combination)`
+      ].join('\n');
 
-        return {
-            name: candidate,
-            netVictories,
-            avgMargin,
-            approvalScore,
-            totalScore,
-            description
-        };
-    });
-    
-    // Sort by total score and return the winner
-    return scores.sort((a, b) => b.totalScore - a.totalScore)[0];
+      return {
+          name: candidate,
+          netVictories,
+          wins,
+          losses,
+          avgMargin,
+          approvalScore,
+          totalScore,
+          description
+      };
+  });
+  
+  // Sort by total score
+  const sortedScores = scores.sort((a, b) => b.totalScore - a.totalScore);
+  
+  // Return all scores or just the winner based on the parameter
+  return returnAllScores ? sortedScores : sortedScores[0];
 };

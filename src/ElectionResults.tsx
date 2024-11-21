@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { getPairwiseResults, getHeadToHeadVictories, calculateSmithSet, selectWinner } from './utils/ElectionUtils';
 import { Election } from './types';
+import type { CandidateScore } from './utils/ElectionUtils';
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
@@ -19,7 +20,6 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         );
     }
 
-    // Only proceed with calculations if we have votes
     if (election.votes.length === 0) {
         return (
             <Card className="max-w-5xl mx-auto">
@@ -39,8 +39,10 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     const victories = getHeadToHeadVictories(pairwiseResults);
     const smithSet = calculateSmithSet(victories);
     
-    // Only calculate winner if we have candidates in the Smith set
-    const winner = smithSet.length > 0 ? selectWinner(smithSet, victories, election) : null;
+    // Get scores for all candidates in the Smith set
+    const rankedCandidates = smithSet.length > 0 
+        ? (selectWinner(smithSet, victories, election, true) as CandidateScore[])
+        : [];
 
     return (
         <div className="space-y-8">
@@ -53,48 +55,68 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-8">
-                        {/* Winner Section */}
-                        {winner ? (
-                            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="space-y-3">
-                                    <h3 className="text-lg font-semibold text-green-800">Winner:</h3>
-                                    <p className="font-medium text-green-800 text-lg line-clamp-2" title={winner.name}>
-                                        {winner.name}
-                                    </p>
-                                    <div className="text-sm text-green-700 space-y-1 font-mono whitespace-pre-line">
-                                        {winner.description}
-                                    </div>
+                        {/* Smith Set Rankings */}
+                        {rankedCandidates.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold">Smith Set Rankings</h3>
+                                <div className="space-y-4">
+                                    {rankedCandidates.map((candidate: CandidateScore, index: number) => (
+                                        <div 
+                                            key={candidate.name}
+                                            className={`p-6 rounded-lg border ${
+                                                index === 0 
+                                                    ? "bg-green-50 border-green-200" 
+                                                    : "bg-slate-50 border-slate-200"
+                                            }`}
+                                        >
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className={`text-lg font-semibold ${
+                                                        index === 0 ? "text-green-800" : "text-slate-800"
+                                                    }`}>
+                                                        {index + 1}. {candidate.name}
+                                                    </h4>
+                                                    <span className={`text-sm font-medium ${
+                                                        index === 0 ? "text-green-800" : "text-slate-600"
+                                                    }`}>
+                                                        Score: {candidate.totalScore.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className={`text-sm space-y-1 font-mono ${
+                                                    index === 0 ? "text-green-700" : "text-slate-600"
+                                                }`}>
+                                                    <div>• Head-to-Head Record: {candidate.netVictories > 0 ? "+" : ""}{candidate.netVictories} ({candidate.wins} wins, {candidate.losses} losses)</div>
+                                                    <div>• Average Victory Margin: {candidate.avgMargin.toFixed(2)}</div>
+                                                    <div>• Approval Votes: {candidate.approvalScore}</div>
+                                                    <div className="mt-2 font-sans">
+                                                        Score Breakdown:
+                                                        <ul className="ml-4">
+                                                            <li>• Victories: {(candidate.netVictories * 0.4).toFixed(2)} (40% weight)</li>
+                                                            <li>• Margins: {(candidate.avgMargin * 0.3).toFixed(2)} (30% weight)</li>
+                                                            <li>• Approval: {(candidate.approvalScore * 0.3).toFixed(2)} (30% weight)</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <p className="text-yellow-800">
-                                    No clear winner could be determined.
-                                </p>
                             </div>
                         )}
 
-                        {/* Smith Set */}
+                        {/* Rest of the component remains the same */}
+                        {/* Smith Set Explanation */}
                         {smithSet.length > 0 && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Smith Set Analysis</h3>
-                                <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm text-blue-600 mb-4">
-                                        The Smith set contains candidates who can defeat or tie with any candidate outside the set.
-                                        The winner is selected from this set using a combination of head-to-head victories, margins,
-                                        and approval votes.
-                                    </p>
-                                    <div className="text-sm font-medium text-blue-800 space-y-2">
-                                        <div>Smith Set members:</div>
-                                        <div className="pl-4 grid grid-cols-2 gap-x-8 gap-y-1">
-                                            {smithSet.map((member, index) => (
-                                                <div key={index} className="line-clamp-2" title={member}>
-                                                    • {member}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-sm text-blue-600 mb-4">
+                                    The Smith set contains candidates who can defeat or tie with any candidate outside the set.
+                                    The winner is selected using a weighted scoring system that considers:
+                                </p>
+                                <ul className="text-sm text-blue-700 list-disc pl-5 space-y-1">
+                                    <li>Head-to-head victories (40% of total score)</li>
+                                    <li>Average margin of victory (30% of total score)</li>
+                                    <li>Approval votes (30% of total score)</li>
+                                </ul>
                             </div>
                         )}
 
