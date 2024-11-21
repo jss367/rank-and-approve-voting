@@ -1,6 +1,12 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
-import { getPairwiseResults, getHeadToHeadVictories, calculateSmithSet, selectWinner } from './utils/ElectionUtils';
+import {
+    getPairwiseResults,
+    getHeadToHeadVictories,
+    calculateSmithSet,
+    selectWinner,
+    getOrdinalSuffix
+} from './utils/ElectionUtils';
 import { Election } from './types';
 import type { CandidateScore } from './utils/ElectionUtils';
 
@@ -38,8 +44,6 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     const pairwiseResults = getPairwiseResults(election);
     const victories = getHeadToHeadVictories(pairwiseResults);
     const smithSet = calculateSmithSet(victories);
-    
-    // Get scores for all candidates in the Smith set
     const rankedCandidates = smithSet.length > 0 
         ? (selectWinner(smithSet, victories, election, true) as CandidateScore[])
         : [];
@@ -60,63 +64,86 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold">Smith Set Rankings</h3>
                                 <div className="space-y-4">
-                                    {rankedCandidates.map((candidate: CandidateScore, index: number) => (
-                                        <div 
-                                            key={candidate.name}
-                                            className={`p-6 rounded-lg border ${
-                                                index === 0 
-                                                    ? "bg-green-50 border-green-200" 
-                                                    : "bg-slate-50 border-slate-200"
-                                            }`}
-                                        >
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <h4 className={`text-lg font-semibold ${
-                                                        index === 0 ? "text-green-800" : "text-slate-800"
-                                                    }`}>
-                                                        {index + 1}. {candidate.name}
-                                                    </h4>
-                                                    <span className={`text-sm font-medium ${
-                                                        index === 0 ? "text-green-800" : "text-slate-600"
-                                                    }`}>
-                                                        Score: {candidate.totalScore.toFixed(2)}
-                                                    </span>
-                                                </div>
-                                                <div className={`text-sm space-y-1 font-mono ${
-                                                    index === 0 ? "text-green-700" : "text-slate-600"
-                                                }`}>
-                                                    <div>• Head-to-Head Record: {candidate.netVictories > 0 ? "+" : ""}{candidate.netVictories} ({candidate.wins} wins, {candidate.losses} losses)</div>
-                                                    <div>• Average Victory Margin: {candidate.avgMargin.toFixed(2)}</div>
-                                                    <div>• Approval Votes: {candidate.approvalScore}</div>
-                                                    <div className="mt-2 font-sans">
-                                                        Score Breakdown:
-                                                        <ul className="ml-4">
-                                                            <li>• Victories: {(candidate.netVictories * 0.4).toFixed(2)} (40% weight)</li>
-                                                            <li>• Margins: {(candidate.avgMargin * 0.3).toFixed(2)} (30% weight)</li>
-                                                            <li>• Approval: {(candidate.approvalScore * 0.3).toFixed(2)} (30% weight)</li>
-                                                        </ul>
+                                    {rankedCandidates.map((candidate: CandidateScore, index: number) => {
+                                        const isFirstPlace = candidate.rank === 1;
+                                        const hasTie = candidate.isTied;
+                                        
+                                        return (
+                                            <div 
+                                                key={candidate.name}
+                                                className={`p-6 rounded-lg border ${
+                                                    isFirstPlace
+                                                        ? hasTie 
+                                                            ? "bg-yellow-50 border-yellow-200"  // Tied for first
+                                                            : "bg-green-50 border-green-200"    // Clear winner
+                                                        : "bg-slate-50 border-slate-200"        // Other positions
+                                                }`}
+                                            >
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <h4 className={`text-lg font-semibold ${
+                                                                isFirstPlace 
+                                                                    ? hasTie
+                                                                        ? "text-yellow-800"
+                                                                        : "text-green-800"
+                                                                    : "text-slate-800"
+                                                            }`}>
+                                                                {candidate.name}
+                                                            </h4>
+                                                            <p className={`text-sm ${
+                                                                isFirstPlace
+                                                                    ? hasTie
+                                                                        ? "text-yellow-700"
+                                                                        : "text-green-700"
+                                                                    : "text-slate-600"
+                                                            }`}>
+                                                                {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
+                                                            </p>
+                                                        </div>
+                                                        <div className={`text-sm font-medium space-y-1 text-right ${
+                                                            isFirstPlace
+                                                                ? hasTie
+                                                                    ? "text-yellow-800"
+                                                                    : "text-green-800"
+                                                                : "text-slate-600"
+                                                        }`}>
+                                                            <div>Approval Votes: {candidate.metrics.approval}</div>
+                                                            <div>Net H2H: {candidate.metrics.headToHead > 0 ? "+" : ""}{candidate.metrics.headToHead}</div>
+                                                            <div>Avg Margin: {candidate.metrics.margin.toFixed(2)}</div>
+                                                        </div>
                                                     </div>
+                                                    {candidate.description && (
+                                                        <div className={`text-sm space-y-1 font-mono ${
+                                                            isFirstPlace
+                                                                ? hasTie
+                                                                    ? "text-yellow-700"
+                                                                    : "text-green-700"
+                                                                : "text-slate-600"
+                                                        }`}>
+                                                            {candidate.description}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
 
-                        {/* Rest of the component remains the same */}
                         {/* Smith Set Explanation */}
                         {smithSet.length > 0 && (
                             <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
                                 <p className="text-sm text-blue-600 mb-4">
-                                    The Smith set contains candidates who can defeat or tie with any candidate outside the set.
-                                    The winner is selected using a weighted scoring system that considers:
+                                    Rankings are determined in order by:
                                 </p>
-                                <ul className="text-sm text-blue-700 list-disc pl-5 space-y-1">
-                                    <li>Head-to-head victories (40% of total score)</li>
-                                    <li>Average margin of victory (30% of total score)</li>
-                                    <li>Approval votes (30% of total score)</li>
-                                </ul>
+                                <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
+                                    <li>Number of approval votes</li>
+                                    <li>If tied, head-to-head record (net wins minus losses)</li>
+                                    <li>If still tied and they faced each other, direct matchup result</li>
+                                    <li>If still tied, average victory margin</li>
+                                </ol>
                             </div>
                         )}
 
