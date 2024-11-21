@@ -1,7 +1,23 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
-import { getPairwiseResults, getHeadToHeadVictories, calculateSmithSet } from './utils/ElectionUtils';
+import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users, Star, Swords} from 'lucide-react';
 import { Election } from './types';
+import type { CandidateScore } from './utils/ElectionUtils';
+import {
+    getPairwiseResults,
+    getHeadToHeadVictories,
+    calculateSmithSet,
+    selectWinner,
+    getOrdinalSuffix
+} from './utils/ElectionUtils';
+
+const formatDescription = (description: string) => {
+    // Split the description into parts by line breaks or marking phrases
+    const parts = description.split(/\n|(?=Ranked by)/);
+
+    // Filter out empty strings and trim each part
+    return parts.filter(part => part.trim()).map(part => part.trim());
+};
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
@@ -19,66 +35,232 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
         );
     }
 
-    const pairwiseResults = getPairwiseResults(election);
-    const victories = getHeadToHeadVictories(pairwiseResults);
-    const smithSet = calculateSmithSet(victories);
-
-    const approvalScores = election.candidates.map(candidate => ({
-        name: candidate.name,
-        approval: election.votes.filter(vote =>
-            vote.approved.includes(candidate.id)
-        ).length
-    })).sort((a, b) => b.approval - a.approval);
-
-    const winner = approvalScores
-        .filter(candidate => smithSet.includes(candidate.name))
-        .sort((a, b) => b.approval - a.approval)[0];
-
-    return (
-        <div className="space-y-8">
+    if (election.votes.length === 0) {
+        return (
             <Card className="max-w-5xl mx-auto">
                 <CardHeader>
                     <CardTitle className="text-xl">Election Results: {election.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Total Votes: {election.votes.length}
-                    </p>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-8">
-                        {/* Pairwise Results */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Head-to-head Matchups</h3>
-                            <div className="grid gap-4">
-                                {pairwiseResults.map((result, index) => (
-                                    <div key={index} className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-                                        <div className="grid grid-cols-[minmax(0,2.5fr),auto,minmax(0,2.5fr)] gap-8 items-center">
-                                            <div className="space-y-2 min-w-0">
-                                                <p
-                                                    className="font-medium line-clamp-2 min-h-[2.5rem] text-lg"
-                                                    title={result.candidate1}
-                                                >
-                                                    {result.candidate1}
-                                                </p>
-                                                <p className="text-sm text-slate-600">
-                                                    {result.candidate1Votes} votes
-                                                </p>
-                                            </div>
-                                            <div className="text-slate-400 font-medium self-start pt-2 px-4">
-                                                vs
-                                            </div>
-                                            <div className="space-y-2 min-w-0 text-right">
-                                                <p
-                                                    className="font-medium line-clamp-2 min-h-[2.5rem] text-lg"
-                                                    title={result.candidate2}
-                                                >
-                                                    {result.candidate2}
-                                                </p>
-                                                <p className="text-sm text-slate-600">
-                                                    {result.candidate2Votes} votes
-                                                </p>
-                                            </div>
+                    <p className="text-sm text-muted-foreground">
+                        No votes have been cast yet.
+                    </p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const pairwiseResults = getPairwiseResults(election);
+    const victories = getHeadToHeadVictories(pairwiseResults);
+    const smithSet = calculateSmithSet(victories);
+    const rankedCandidates = smithSet.length > 0
+        ? selectWinner(smithSet, victories, election, true)
+        : [];
+
+    return (
+        <div className="space-y-8 p-4 md:p-8 max-w-7xl mx-auto">
+            {/* Header Section */}
+            <div className="text-center space-y-4">
+                <h1 className="text-3xl font-bold text-slate-900">{election.title}</h1>
+                <div className="flex items-center justify-center gap-2 text-slate-600">
+                    <Users className="w-5 h-5" />
+                    <span className="text-lg">{election.votes.length} total votes</span>
+                </div>
+            </div>
+
+            {/* Smith Set Section */}
+            {smithSet.length > 0 && (
+                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-purple-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-purple-900">
+                            <Star className="w-5 h-5 text-purple-500" />
+                            Smith Set
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-purple-900 mb-4">
+                            The Smith set contains the smallest group of candidates who collectively beat all other candidates.
+                            These {smithSet.length} candidates were selected for final ranking:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {smithSet.map((candidate) => (
+                                <span
+                                    key={candidate}
+                                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium"
+                                >
+                                    {candidate}
+                                </span>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Results Grid */}
+            <div className="grid gap-6">
+                {rankedCandidates.map((candidate: CandidateScore, index: number) => {
+                    const isFirstPlace = candidate.rank === 1;
+                    const hasTie = candidate.isTied;
+                    const descriptionParts = formatDescription(candidate.description);
+
+                    return (
+                        <div
+                            key={candidate.name}
+                            className={`transform transition-all duration-200 hover:scale-[1.02] ${isFirstPlace
+                                    ? hasTie
+                                        ? "bg-gradient-to-br from-amber-50 to-yellow-50 shadow-yellow-100"
+                                        : "bg-gradient-to-br from-emerald-50 to-green-50 shadow-emerald-100"
+                                    : "bg-gradient-to-br from-slate-50 to-gray-50"
+                                } rounded-xl shadow-lg border border-slate-200 overflow-hidden`}
+                        >
+                            <div className="p-6 space-y-4">
+                                {/* Header */}
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            {isFirstPlace && <Medal className="w-6 h-6 text-yellow-500" />}
+                                            <h2 className="text-2xl font-bold text-slate-900">
+                                                {candidate.name}
+                                            </h2>
                                         </div>
-                                        <div className="mt-4 text-sm text-center font-medium text-slate-700 pt-3 border-t border-slate-200">
+                                        <p className={`text-sm font-medium ${isFirstPlace
+                                                ? hasTie ? "text-yellow-700" : "text-green-700"
+                                                : "text-slate-600"
+                                            }`}>
+                                            {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
+                                        </p>
+                                    </div>
+
+                                    {/* Metrics Grid */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">{candidate.metrics.approval}</p>
+                                            <p className="text-xs text-slate-500">Approval Votes</p>
+                                        </div>
+
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                {candidate.metrics.headToHead >= 0 ? (
+                                                    <TrendingUp className="w-5 h-5 text-green-500" />
+                                                ) : (
+                                                    <TrendingDown className="w-5 h-5 text-red-500" />
+                                                )}
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">
+                                                {candidate.metrics.headToHead > 0 ? "+" : ""}{candidate.metrics.headToHead}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Net H2H</p>
+                                        </div>
+
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                <Users className="w-5 h-5 text-purple-500" />
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">
+                                                {candidate.metrics.margin.toFixed(2)}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Avg Margin</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Details */}
+                                <div className={`space-y-2 font-mono rounded-lg p-4 ${isFirstPlace
+                                        ? hasTie
+                                            ? "bg-yellow-100/50 text-yellow-800"
+                                            : "bg-green-100/50 text-green-800"
+                                        : "bg-slate-100/50 text-slate-700"
+                                    }`}>
+                                    {descriptionParts.map((part, idx) => (
+                                        <p key={idx} className="text-sm">
+                                            {part}
+                                        </p>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Methodology Card */}
+            <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                    <CardTitle className="text-blue-900">How Rankings are Determined</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-blue-800 mb-4">
+                        After selecting the Smith set (candidates who collectively beat all others), candidates are ranked by:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>Number of approval votes</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <Swords className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If still tied and they faced each other, direct matchup result</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <TrendingUp className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If tied, head-to-head record (net wins minus losses)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <Medal className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If still tied, average victory margin</span>
+                        </li>
+                    </ol>
+                </CardContent>
+            </Card>
+
+
+            {/* Head-to-head Results */}
+            {pairwiseResults.length > 0 && (
+                <div className="space-y-6">
+                    <h3 className="text-2xl font-bold text-slate-900 text-center">Head-to-head Matchups</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {pairwiseResults.map((result, index) => (
+                            <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
+                                <CardContent className="pt-6">
+                                    <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                                        <div className="text-center space-y-2">
+                                            <p className="font-bold text-lg text-slate-900 line-clamp-2 min-h-[3rem]">
+                                                {result.candidate1}
+                                            </p>
+                                            <p className="text-3xl font-bold text-blue-600">
+                                                {result.candidate1Votes}
+                                            </p>
+                                            <p className="text-sm text-slate-500">votes</p>
+                                        </div>
+
+                                        <div className="text-2xl font-bold text-slate-400">
+                                            VS
+                                        </div>
+
+                                        <div className="text-center space-y-2">
+                                            <p className="font-bold text-lg text-slate-900 line-clamp-2 min-h-[3rem]">
+                                                {result.candidate2}
+                                            </p>
+                                            <p className="text-3xl font-bold text-blue-600">
+                                                {result.candidate2Votes}
+                                            </p>
+                                            <p className="text-sm text-slate-500">votes</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 pt-4 border-t border-slate-200">
+                                        <p className="text-center font-medium">
                                             Winner: {
                                                 result.candidate1Votes > result.candidate2Votes
                                                     ? result.candidate1
@@ -86,74 +268,17 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                         ? result.candidate2
                                                         : "Tie"
                                             }
-                                        </div>
+                                            {result.candidate1Votes !== result.candidate2Votes &&
+                                                ` (by ${Math.abs(result.candidate1Votes - result.candidate2Votes)} votes)`
+                                            }
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Smith Set */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Smith Set</h3>
-                            <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-600 mb-4">
-                                    The Smith set contains the candidates that form the smallest non-empty set where every candidate in the set beats every candidate outside the set in a head-to-head match.
-                                </p>
-                                <div className="text-sm font-medium text-blue-800 space-y-2">
-                                    <div>Smith Set members:</div>
-                                    <div className="pl-4 grid grid-cols-2 gap-x-8 gap-y-1">
-                                        {smithSet.map((member, index) => (
-                                            <div key={index} className="line-clamp-2" title={member}>
-                                                • {member}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Winner */}
-                        {winner && (
-                            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="space-y-3">
-                                    <h3 className="text-lg font-semibold text-green-800">Winner:</h3>
-                                    <p className="font-medium text-green-800 text-lg line-clamp-2" title={winner.name}>
-                                        {winner.name}
-                                    </p>
-                                    <p className="text-sm text-green-600">
-                                        Selected from the Smith set with highest approval ({winner.approval} votes)
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Approval Scores */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Approval Scores</h3>
-                            <div className="grid gap-2">
-                                {approvalScores.map((score) => (
-                                    <div
-                                        key={score.name}
-                                        className="flex items-start p-4 bg-slate-50 rounded-lg border border-slate-200"
-                                    >
-                                        <div className="flex-1 min-w-0">
-                                            <p
-                                                className="font-medium line-clamp-2 text-lg"
-                                                title={score.name}
-                                            >
-                                                {score.name}
-                                            </p>
-                                        </div>
-                                        <span className="ml-8 text-slate-600 whitespace-nowrap pt-1">
-                                            {score.approval} approvals
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            )}
         </div>
     );
 };

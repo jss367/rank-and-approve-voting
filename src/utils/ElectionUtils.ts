@@ -1,5 +1,31 @@
 import { Election, PairwiseResult } from '../types';
 
+interface Victory {
+  winner: string;
+  loser: string;
+  margin: number;
+}
+
+
+export interface Metrics {
+  approval: number;
+  headToHead: number;
+  margin: number;
+}
+
+export interface CandidateScore {
+  name: string;
+  approvalScore: number;
+  netVictories: number;
+  wins: number;
+  losses: number;
+  avgMargin: number;
+  rank: number;
+  isTied: boolean;
+  description: string;
+  metrics: Metrics;
+}
+
 export const getPairwiseResults = (election: Election): PairwiseResult[] => {
   const results: PairwiseResult[] = [];
 
@@ -45,8 +71,8 @@ export const getPairwiseResults = (election: Election): PairwiseResult[] => {
   return results;
 };
 
-export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
-  const victories: { winner: string; loser: string; margin: number }[] = [];
+export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]): Victory[] => {
+  const victories: Victory[] = [];
 
   pairwiseResults.forEach(result => {
     if (result.candidate1Votes > result.candidate2Votes) {
@@ -61,92 +87,222 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]) => {
         loser: result.candidate1,
         margin: result.candidate2Votes - result.candidate1Votes
       });
-    } else {
-      // It's a tie - add both directions with margin 0
-      victories.push(
-        {
-          winner: result.candidate1,
-          loser: result.candidate2,
-          margin: 0
-        },
-        {
-          winner: result.candidate2,
-          loser: result.candidate1,
-          margin: 0
-        }
-      );
     }
+    // Note: We no longer add both directions for ties
   });
 
-  // Sort by winner name for consistent test results
   return victories.sort((a, b) => a.winner.localeCompare(b.winner));
 };
 
-export const calculateSmithSet = (victories: { winner: string; loser: string; margin: number }[]): string[] => {
+export const calculateSmithSet = (victories: Victory[]): string[] => {
   // Get all candidates
   const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
 
-  // Create defeat graph including ties
-  const defeats = new Map<string, Map<string, number>>();
-  candidates.forEach(c => defeats.set(c, new Map()));
+  // Create defeat graph (only including strict victories)
+  const defeats = new Map<string, Set<string>>();
+  candidates.forEach(c => defeats.set(c, new Set()));
 
-  // Fill in all victories and ties
+  // Fill in victories
   victories.forEach(v => {
-    // Store the margin of victory/tie
-    defeats.get(v.winner)?.set(v.loser, v.margin);
+    defeats.get(v.winner)?.add(v.loser);
   });
 
-  // Helper function: does A beat or tie with B?
-  const beatsOrTies = (a: string, b: string): boolean => {
-    const margin = defeats.get(a)?.get(b);
-    return margin !== undefined && margin >= 0;
-  };
-
-  // Helper function: does A strictly beat B?
-  const strictlyBeats = (a: string, b: string): boolean => {
-    const margin = defeats.get(a)?.get(b);
-    return margin !== undefined && margin > 0;
-  };
-
-  // Helper function: can candidate A reach candidate B through victories or ties?
+  // Helper function: can candidate A reach candidate B through victories?
   const canReach = (start: string, target: string, visited = new Set<string>()): boolean => {
     if (start === target) return true;
     if (visited.has(start)) return false;
 
     visited.add(start);
-    const neighbors = Array.from(candidates).filter(c => beatsOrTies(start, c));
-
-    return neighbors.some(n => canReach(n, target, visited));
+    const beatenCandidates = defeats.get(start) || new Set();
+    return Array.from(beatenCandidates).some(c => canReach(c, target, visited));
   };
 
-  // A candidate should be in the Smith set if:
-  // 1. It can reach every other candidate through a path of victories/ties
-  // 2. No candidate outside the set strictly beats all candidates in the set
+  // A candidate is in the Smith set if they can reach all others OR
+  // have a winning or tied record against everyone not in their reach
   const isInSmithSet = (candidate: string): boolean => {
-    // Can this candidate reach all others?
-    const canReachAll = candidates.every(other =>
-      candidate === other || canReach(candidate, other)
+    const reachableCandidates = new Set(
+      candidates.filter(other =>
+        candidate === other || canReach(candidate, other)
+      )
     );
 
-    // Is this candidate part of a mutual-reachability group?
-    const mutuallyReachable = candidates.filter(other =>
-      candidate === other ||
-      (canReach(candidate, other) && canReach(other, candidate))
-    );
+    const unreachableCandidates = candidates.filter(c => !reachableCandidates.has(c));
 
-    // No candidate outside the mutually reachable group should
-    // strictly beat everyone in the group
-    const noOutsideDomination = candidates.every(outside =>
-      mutuallyReachable.includes(outside) ||
-      !mutuallyReachable.every(inside => strictlyBeats(outside, inside))
-    );
+    // Check if candidate has non-losing record against unreachable candidates
+    const hasNonLosingRecord = unreachableCandidates.every(other => {
+      const losesToOther = victories.some(v =>
+        v.winner === other && v.loser === candidate
+      );
+      return !losesToOther;
+    });
 
-    return canReachAll && noOutsideDomination;
+    return reachableCandidates.size === candidates.length || hasNonLosingRecord;
   };
 
   // Calculate Smith set
-  const smithSet = candidates.filter(isInSmithSet);
+  return candidates.filter(isInSmithSet).sort();
+};
 
-  // If empty (shouldn't happen with valid input), return all candidates
-  return smithSet.length > 0 ? smithSet.sort() : candidates.sort();
+export const selectWinner = (
+  smithSet: string[], 
+  victories: Victory[], 
+  election: Election,
+  returnAllScores: boolean = false
+): CandidateScore[] => {
+  // First calculate all metrics for each candidate
+  const scores: CandidateScore[] = smithSet.map(candidate => {
+      const wins = victories.filter(v => v.winner === candidate).length;
+      const losses = victories.filter(v => v.loser === candidate).length;
+      const netVictories = wins - losses;
+      
+      const margins = victories
+          .filter(v => v.winner === candidate || v.loser === candidate)
+          .map(v => v.winner === candidate ? v.margin : -v.margin);
+      const avgMargin = margins.length > 0 
+          ? margins.reduce((sum, m) => sum + m, 0) / margins.length
+          : 0;
+      
+      const candidateId = election.candidates.find(c => c.name === candidate)?.id || '';
+      const approvalScore = election.votes.filter(vote => 
+          vote.approved.includes(candidateId)
+      ).length;
+
+      return {
+          name: candidate,
+          approvalScore,
+          netVictories,
+          wins,
+          losses,
+          avgMargin,
+          rank: 0,
+          isTied: false,
+          description: '',
+          metrics: {
+              approval: approvalScore,
+              headToHead: netVictories,
+              margin: avgMargin
+          }
+      };
+  });
+
+  // Sort using updated waterfall approach
+  const sortedScores = scores.sort((a, b) => {
+      // 1. First compare by approval votes
+      if (a.metrics.approval !== b.metrics.approval) {
+          return b.metrics.approval - a.metrics.approval;
+      }
+      
+      // 2. If approval tied, check direct matchup
+      const directMatchup = victories.find(v => 
+          (v.winner === a.name && v.loser === b.name) ||
+          (v.winner === b.name && v.loser === a.name)
+      );
+      
+      if (directMatchup) {
+          return directMatchup.winner === a.name ? -1 : 1;
+      }
+      
+      // 3. If no direct matchup or tied, compare head-to-head record
+      if (a.metrics.headToHead !== b.metrics.headToHead) {
+          return b.metrics.headToHead - a.metrics.headToHead;
+      }
+      
+      // 4. If head-to-head tied, compare average margin
+      return b.metrics.margin - a.metrics.margin;
+  });
+
+  // Assign ranks and identify ties (similar to before)
+  let currentRank = 1;
+  let currentMetrics = {
+      approval: sortedScores[0]?.metrics.approval,
+      headToHead: sortedScores[0]?.metrics.headToHead,
+      margin: sortedScores[0]?.metrics.margin
+  };
+
+  sortedScores.forEach((score, index) => {
+      const nextCand = sortedScores[index + 1];
+      const prevCand = sortedScores[index - 1];
+
+      // Determine if current rank should increment
+      if (index > 0) {
+          const prevScore = sortedScores[index - 1];
+          const directMatchup = victories.find(v => 
+              (v.winner === score.name && v.loser === prevScore.name) ||
+              (v.winner === prevScore.name && v.loser === score.name)
+          );
+          
+          if (score.metrics.approval !== prevScore.metrics.approval ||
+              (directMatchup && directMatchup.winner !== prevScore.name) ||
+              score.metrics.headToHead !== prevScore.metrics.headToHead ||
+              score.metrics.margin !== prevScore.metrics.margin) {
+              currentRank = index + 1;
+              currentMetrics = score.metrics;
+          }
+      }
+      
+      score.rank = currentRank;
+
+      // Check for ties with adjacent candidates
+      score.isTied = (nextCand && 
+          nextCand.metrics.approval === score.metrics.approval &&
+          !victories.some(v => 
+              (v.winner === score.name && v.loser === nextCand.name) ||
+              (v.winner === nextCand.name && v.loser === score.name)
+          ) &&
+          nextCand.metrics.headToHead === score.metrics.headToHead
+      ) || (prevCand && 
+          prevCand.metrics.approval === score.metrics.approval &&
+          !victories.some(v => 
+              (v.winner === score.name && v.loser === prevCand.name) ||
+              (v.winner === prevCand.name && v.loser === score.name)
+          ) &&
+          prevCand.metrics.headToHead === score.metrics.headToHead
+      );
+
+      // Create detailed description showing which metric determined the ranking
+      const rankText = score.isTied 
+          ? `Tied for ${score.rank}${getOrdinalSuffix(score.rank)} place` 
+          : `${score.rank}${getOrdinalSuffix(score.rank)} place`;
+
+      let decidingFactor = "";
+      if (index > 0) {
+          const prevScore = sortedScores[index - 1];
+          if (score.metrics.approval !== prevScore.metrics.approval) {
+              decidingFactor = "\nRanked by approval votes";
+          } else {
+              const directMatchup = victories.find(v => 
+                  (v.winner === score.name && v.loser === prevScore.name) ||
+                  (v.winner === prevScore.name && v.loser === score.name)
+              );
+              if (directMatchup) {
+                  decidingFactor = "\nRanked by direct head-to-head matchup";
+              } else if (score.metrics.headToHead !== prevScore.metrics.headToHead) {
+                  decidingFactor = "\nRanked by head-to-head record";
+              } else if (!score.isTied) {
+                  decidingFactor = "\nRanked by average victory margin";
+              }
+          }
+      }
+
+      score.description = [
+          rankText,
+          `Approval Votes: ${score.approvalScore}`,
+          `Head-to-Head Record: ${score.netVictories > 0 ? "+" : ""}${score.netVictories} (${score.wins} wins, ${score.losses} losses)`,
+          `Average Victory Margin: ${score.avgMargin.toFixed(2)}`,
+          decidingFactor,
+          score.isTied ? "\nNo head-to-head victory between tied candidates" : ""
+      ].join('\n').trim();
+  });
+
+  return sortedScores;
+};
+
+// Helper function for ordinal suffixes
+export const getOrdinalSuffix = (n: number): string => {
+  const j = n % 10;
+  const k = n % 100;
+  if (j === 1 && k !== 11) return "st";
+  if (j === 2 && k !== 12) return "nd";
+  if (j === 3 && k !== 13) return "rd";
+  return "th";
 };
