@@ -1,11 +1,4 @@
-import { Election, PairwiseResult } from '../types';
-
-interface Victory {
-  winner: string;
-  loser: string;
-  margin: number;
-}
-
+import { Election, Victory, PairwiseResult } from '../types';
 
 export interface Metrics {
   approval: number;
@@ -94,11 +87,11 @@ export const getHeadToHeadVictories = (pairwiseResults: PairwiseResult[]): Victo
   return victories.sort((a, b) => a.winner.localeCompare(b.winner));
 };
 
-export const calculateSmithSet = (victories: Victory[]): string[] => {
-  // Get all candidates
-  const candidates = Array.from(new Set(victories.flatMap(v => [v.winner, v.loser])));
+export const calculateSmithSet = (victories: Victory[], election: Election): string[] => {
+  // Get all candidates from the election data
+  const candidates = election.candidates.map(c => c.name);
 
-  // Create defeat graph (only including strict victories)
+  // Create defeat graph
   const defeats = new Map<string, Set<string>>();
   candidates.forEach(c => defeats.set(c, new Set()));
 
@@ -120,6 +113,9 @@ export const calculateSmithSet = (victories: Victory[]): string[] => {
   // A candidate is in the Smith set if they can reach all others OR
   // have a winning or tied record against everyone not in their reach
   const isInSmithSet = (candidate: string): boolean => {
+    // If there are no victories, all candidates should be in the Smith set
+    if (victories.length === 0) return true;
+
     const reachableCandidates = new Set(
       candidates.filter(other =>
         candidate === other || canReach(candidate, other)

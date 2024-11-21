@@ -52,7 +52,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
 
     const pairwiseResults = getPairwiseResults(election);
     const victories = getHeadToHeadVictories(pairwiseResults);
-    const smithSet = calculateSmithSet(victories);
+    const smithSet = calculateSmithSet(victories, election);
     const rankedCandidates = smithSet.length > 0
         ? selectWinner(smithSet, victories, election, true)
         : [];

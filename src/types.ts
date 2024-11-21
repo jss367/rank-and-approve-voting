@@ -17,6 +17,13 @@ export interface Election {
   createdAt: string;
 }
 
+export interface Victory {
+  winner: string;
+  loser: string;
+  margin: number;
+}
+
+
 export interface PairwiseResult {
   candidate1: string;
   candidate2: string;
