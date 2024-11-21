@@ -6,7 +6,7 @@ import { Election } from './types';
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
         return (
-            <Card>
+            <Card className="max-w-5xl mx-auto"> {/* Increased from max-w-2xl */}
                 <CardHeader>
                     <CardTitle>No election data available</CardTitle>
                 </CardHeader>
@@ -36,7 +36,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
 
     return (
         <div className="space-y-8">
-            <Card>
+            <Card className="max-w-5xl mx-auto"> {/* Increased from max-w-2xl */}
                 <CardHeader>
                     <CardTitle className="text-xl">Election Results: {election.title}</CardTitle>
                     <p className="text-sm text-muted-foreground">
@@ -50,11 +50,11 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                             <h3 className="text-lg font-semibold">Head-to-head Matchups</h3>
                             <div className="grid gap-4">
                                 {pairwiseResults.map((result, index) => (
-                                    <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <div className="grid grid-cols-[minmax(0,2fr),auto,minmax(0,2fr)] gap-4 items-center">
-                                            <div className="space-y-1 min-w-0">
+                                    <div key={index} className="bg-slate-50 p-6 rounded-lg border border-slate-200"> {/* Increased padding */}
+                                        <div className="grid grid-cols-[minmax(0,2.5fr),auto,minmax(0,2.5fr)] gap-8 items-center"> {/* Increased gap and proportions */}
+                                            <div className="space-y-2 min-w-0"> {/* Increased spacing */}
                                                 <p 
-                                                    className="font-medium line-clamp-2 min-h-[2.5rem]" 
+                                                    className="font-medium line-clamp-2 min-h-[2.5rem] text-lg" /* Increased font size */
                                                     title={result.candidate1}
                                                 >
                                                     {result.candidate1}
@@ -63,12 +63,12 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                     {result.candidate1Votes} votes
                                                 </p>
                                             </div>
-                                            <div className="text-slate-400 text-sm font-medium self-start pt-2">
+                                            <div className="text-slate-400 font-medium self-start pt-2 px-4"> {/* Increased padding */}
                                                 vs
                                             </div>
-                                            <div className="space-y-1 min-w-0 text-right">
+                                            <div className="space-y-2 min-w-0 text-right"> {/* Increased spacing */}
                                                 <p 
-                                                    className="font-medium line-clamp-2 min-h-[2.5rem]" 
+                                                    className="font-medium line-clamp-2 min-h-[2.5rem] text-lg" /* Increased font size */
                                                     title={result.candidate2}
                                                 >
                                                     {result.candidate2}
@@ -78,7 +78,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="mt-3 text-sm text-center font-medium text-slate-700 pt-2 border-t border-slate-200">
+                                        <div className="mt-4 text-sm text-center font-medium text-slate-700 pt-3 border-t border-slate-200">
                                             Winner: {
                                                 result.candidate1Votes > result.candidate2Votes
                                                     ? result.candidate1
@@ -95,13 +95,13 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         {/* Smith Set */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Smith Set</h3>
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-600 mb-2">
+                            <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg"> {/* Increased padding */}
+                                <p className="text-sm text-blue-600 mb-4"> {/* Increased margin */}
                                     The Smith set contains the candidates that form the smallest non-empty set where every candidate in the set beats every candidate outside the set in a head-to-head match.
                                 </p>
-                                <div className="text-sm font-medium text-blue-800 space-y-1">
+                                <div className="text-sm font-medium text-blue-800 space-y-2">
                                     <div>Smith Set members:</div>
-                                    <div className="pl-4">
+                                    <div className="pl-4 grid grid-cols-2 gap-x-8 gap-y-1"> {/* Made grid 2 columns */}
                                         {smithSet.map((member, index) => (
                                             <div key={index} className="line-clamp-2" title={member}>
                                                 • {member}
@@ -114,10 +114,10 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
 
                         {/* Winner */}
                         {winner && (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="space-y-2">
+                            <div className="p-6 bg-green-50 border border-green-200 rounded-lg"> {/* Increased padding */}
+                                <div className="space-y-3">
                                     <h3 className="text-lg font-semibold text-green-800">Winner:</h3>
-                                    <p className="font-medium text-green-800 line-clamp-2" title={winner.name}>
+                                    <p className="font-medium text-green-800 text-lg line-clamp-2" title={winner.name}>
                                         {winner.name}
                                     </p>
                                     <p className="text-sm text-green-600">
@@ -134,17 +134,17 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                 {approvalScores.map((score) => (
                                     <div
                                         key={score.name}
-                                        className="flex items-start p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                        className="flex items-start p-4 bg-slate-50 rounded-lg border border-slate-200"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <p 
-                                                className="font-medium line-clamp-2" 
+                                                className="font-medium line-clamp-2 text-lg"
                                                 title={score.name}
                                             >
                                                 {score.name}
                                             </p>
                                         </div>
-                                        <span className="ml-4 text-slate-600 whitespace-nowrap pt-0.5">
+                                        <span className="ml-8 text-slate-600 whitespace-nowrap pt-1">
                                             {score.approval} approvals
                                         </span>
                                     </div>
