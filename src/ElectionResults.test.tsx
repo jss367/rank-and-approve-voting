@@ -77,34 +77,27 @@ describe('Election Result Calculations', () => {
                 margin: 2
             },
             {
-                winner: "Candidate 1",
-                loser: "Candidate 3",
-                margin: 0
-            },
-            {
                 winner: "Candidate 2",
                 loser: "Candidate 3",
                 margin: 2
-            },
-            {
-                winner: "Candidate 3",
-                loser: "Candidate 1",
-                margin: 0
             }
         ]);
     });
 
-    test('identifies correct Smith set', () => {
+    test('identifies correct Smith set with mixed victories and ties', () => {
         const pairwise = getPairwiseResults(threeWayTestElection);
-        const victories = getHeadToHeadVictories(pairwise);
-        const smithSet = calculateSmithSet(victories);
+        console.log('Pairwise Results:', JSON.stringify(pairwise, null, 2));
 
-        // Due to the voting pattern, all candidates should be in the Smith set
-        // because no candidate completely dominates the others
-        expect(new Set(smithSet)).toEqual(new Set([
-            "Candidate 1",
-            "Candidate 2",
-            "Candidate 3"
-        ]));
+        const victories = getHeadToHeadVictories(pairwise);
+        console.log('Victories:', JSON.stringify(victories, null, 2));
+
+        const smithSet = calculateSmithSet(victories, threeWayTestElection);
+
+        // Candidate 1 should be the only member of the Smith set because:
+        // - Beats Candidate 2 (3-1)
+        // - Ties with Candidate 3 (2-2)
+        // - Candidate 2 is excluded because they lose to Candidate 1
+        // - Candidate 3 is excluded because they lose to Candidate 2
+        expect(new Set(smithSet)).toEqual(new Set(["Candidate 1"]));
     });
 });

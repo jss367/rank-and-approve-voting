@@ -104,7 +104,7 @@ describe('Election Result Calculations', () => {
   test('identifies correct Smith set with clear winner', () => {
     const pairwise = getPairwiseResults(simpleTestElection);
     const victories = getHeadToHeadVictories(pairwise);
-    const smithSet = calculateSmithSet(victories);
+    const smithSet = calculateSmithSet(victories, simpleTestElection);
 
     expect(smithSet).toEqual(["Candidate 1"]); // Candidate 1 beats everyone
   });
@@ -150,7 +150,7 @@ describe('Election Result Calculations', () => {
     const victories = getHeadToHeadVictories(pairwise);
     console.log('Cyclic Victories:', JSON.stringify(victories, null, 2));
 
-    const smithSet = calculateSmithSet(victories);
+    const smithSet = calculateSmithSet(victories, cyclicElection);
     console.log('Cyclic Smith Set:', smithSet);
 
     // In a perfect cycle, all candidates should be in the Smith set
@@ -184,7 +184,7 @@ describe('Election Result Calculations', () => {
   test('handles tied preferences correctly', () => {
     const pairwise = getPairwiseResults(tiedElection);
     const victories = getHeadToHeadVictories(pairwise);
-    const smithSet = calculateSmithSet(victories);
+    const smithSet = calculateSmithSet(victories, tiedElection);
 
     // With perfect ties, both candidates should be in Smith set
     expect(new Set(smithSet)).toEqual(new Set(["Candidate 1", "Candidate 2"]));
