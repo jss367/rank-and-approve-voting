@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users, Star, Swords} from 'lucide-react';
-import { Election } from './types';
+import { Election, Candidate, Vote } from './types';
 import type { CandidateScore } from './utils/ElectionUtils';
 import {
     getPairwiseResults,
@@ -17,6 +17,42 @@ const formatDescription = (description: string) => {
 
     // Filter out empty strings and trim each part
     return parts.filter(part => part.trim()).map(part => part.trim());
+};
+
+interface ApprovalVotesProps {
+    election: Election;
+}
+
+interface ApprovalCount {
+    name: string;
+    count: number;
+    percentage: string;
+}
+
+const ApprovalVotes: React.FC<ApprovalVotesProps> = ({ election }) => {
+    const approvalCounts: ApprovalCount[] = election.candidates.map((candidate: Candidate) => ({
+        name: candidate.name,
+        count: election.votes.filter((vote: Vote) => vote.approved.includes(candidate.id)).length,
+        percentage: (election.votes.filter((vote: Vote) => vote.approved.includes(candidate.id)).length / election.votes.length * 100).toFixed(1)
+    })).sort((a: ApprovalCount, b: ApprovalCount) => b.count - a.count);
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {approvalCounts.map((candidate: ApprovalCount) => (
+                <Card key={candidate.name} className="hover:shadow-lg transition-shadow duration-200">
+                    <CardContent className="pt-6">
+                        <div className="text-center space-y-2">
+                            <p className="font-bold text-lg text-slate-900">{candidate.name}</p>
+                            <p className="text-3xl font-bold text-blue-600">{candidate.count}</p>
+                            <p className="text-sm text-slate-500">
+                                {candidate.percentage}% of voters approved
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
 };
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
@@ -59,7 +95,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
 
     return (
         <div className="space-y-8 p-4 md:p-8 max-w-7xl mx-auto">
-            {/* Header Section */}
+            {/* Header */}
             <div className="text-center space-y-4">
                 <h1 className="text-3xl font-bold text-slate-900">{election.title}</h1>
                 <div className="flex items-center justify-center gap-2 text-slate-600">
@@ -68,36 +104,8 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </div>
             </div>
 
-            {/* Smith Set Section */}
-            {smithSet.length > 0 && (
-                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-purple-200">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-purple-900">
-                            <Star className="w-5 h-5 text-purple-500" />
-                            Smith Set
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-purple-900 mb-4">
-                            The Smith set contains the smallest group of candidates who collectively beat all other candidates.
-                            These {smithSet.length} candidates were selected for final ranking:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {smithSet.map((candidate) => (
-                                <span
-                                    key={candidate}
-                                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium"
-                                >
-                                    {candidate}
-                                </span>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Results Grid */}
-            <div className="grid gap-6">
+{/* Results Grid */}
+<div className="grid gap-6">
                 {rankedCandidates.map((candidate: CandidateScore, index: number) => {
                     const isFirstPlace = candidate.rank === 1;
                     const hasTie = candidate.isTied;
@@ -224,6 +232,39 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </CardContent>
             </Card>
 
+            {/* Smith Set Section */}
+            {smithSet.length > 0 && (
+                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-purple-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-purple-900">
+                            <Star className="w-5 h-5 text-purple-500" />
+                            Smith Set
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-purple-900 mb-4">
+                            The Smith set contains the smallest group of candidates who collectively beat all other candidates.
+                            These {smithSet.length} candidates were selected for final ranking:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {smithSet.map((candidate) => (
+                                <span
+                                    key={candidate}
+                                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium"
+                                >
+                                    {candidate}
+                                </span>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Approval Votes Section */}
+            <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-slate-900 text-center">Approval Votes</h3>
+                <ApprovalVotes election={election} />
+            </div>
 
             {/* Head-to-head Results */}
             {pairwiseResults.length > 0 && (
