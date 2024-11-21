@@ -207,13 +207,7 @@ export const selectWinner = (
       return b.metrics.margin - a.metrics.margin;
   });
 
-  // Assign ranks and identify ties (similar to before)
   let currentRank = 1;
-  let currentMetrics = {
-      approval: sortedScores[0]?.metrics.approval,
-      headToHead: sortedScores[0]?.metrics.headToHead,
-      margin: sortedScores[0]?.metrics.margin
-  };
 
   sortedScores.forEach((score, index) => {
       const nextCand = sortedScores[index + 1];
@@ -232,7 +226,6 @@ export const selectWinner = (
               score.metrics.headToHead !== prevScore.metrics.headToHead ||
               score.metrics.margin !== prevScore.metrics.margin) {
               currentRank = index + 1;
-              currentMetrics = score.metrics;
           }
       }
       
