@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
-import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users } from 'lucide-react';
+import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users, Star, Swords} from 'lucide-react';
 import { Election } from './types';
 import type { CandidateScore } from './utils/ElectionUtils';
 import {
@@ -10,6 +10,14 @@ import {
     selectWinner,
     getOrdinalSuffix
 } from './utils/ElectionUtils';
+
+const formatDescription = (description: string) => {
+    // Split the description into parts by line breaks or marking phrases
+    const parts = description.split(/\n|(?=Ranked by)/);
+
+    // Filter out empty strings and trim each part
+    return parts.filter(part => part.trim()).map(part => part.trim());
+};
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
@@ -45,8 +53,8 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     const pairwiseResults = getPairwiseResults(election);
     const victories = getHeadToHeadVictories(pairwiseResults);
     const smithSet = calculateSmithSet(victories);
-    const rankedCandidates = smithSet.length > 0 
-        ? selectWinner(smithSet, victories, election, true) 
+    const rankedCandidates = smithSet.length > 0
+        ? selectWinner(smithSet, victories, election, true)
         : [];
 
     return (
@@ -60,22 +68,50 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                 </div>
             </div>
 
+            {/* Smith Set Section */}
+            {smithSet.length > 0 && (
+                <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-purple-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-purple-900">
+                            <Star className="w-5 h-5 text-purple-500" />
+                            Smith Set
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-purple-900 mb-4">
+                            The Smith set contains the smallest group of candidates who collectively beat all other candidates.
+                            These {smithSet.length} candidates were selected for final ranking:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {smithSet.map((candidate) => (
+                                <span
+                                    key={candidate}
+                                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium"
+                                >
+                                    {candidate}
+                                </span>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Results Grid */}
             <div className="grid gap-6">
                 {rankedCandidates.map((candidate: CandidateScore, index: number) => {
                     const isFirstPlace = candidate.rank === 1;
                     const hasTie = candidate.isTied;
-                    
+                    const descriptionParts = formatDescription(candidate.description);
+
                     return (
-                        <div 
+                        <div
                             key={candidate.name}
-                            className={`transform transition-all duration-200 hover:scale-[1.02] ${
-                                isFirstPlace 
-                                    ? hasTie 
+                            className={`transform transition-all duration-200 hover:scale-[1.02] ${isFirstPlace
+                                    ? hasTie
                                         ? "bg-gradient-to-br from-amber-50 to-yellow-50 shadow-yellow-100"
                                         : "bg-gradient-to-br from-emerald-50 to-green-50 shadow-emerald-100"
                                     : "bg-gradient-to-br from-slate-50 to-gray-50"
-                            } rounded-xl shadow-lg border border-slate-200 overflow-hidden`}
+                                } rounded-xl shadow-lg border border-slate-200 overflow-hidden`}
                         >
                             <div className="p-6 space-y-4">
                                 {/* Header */}
@@ -87,15 +123,14 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                 {candidate.name}
                                             </h2>
                                         </div>
-                                        <p className={`text-sm font-medium ${
-                                            isFirstPlace
+                                        <p className={`text-sm font-medium ${isFirstPlace
                                                 ? hasTie ? "text-yellow-700" : "text-green-700"
                                                 : "text-slate-600"
-                                        }`}>
+                                            }`}>
                                             {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
                                         </p>
                                     </div>
-                                    
+
                                     {/* Metrics Grid */}
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="text-center space-y-1">
@@ -105,7 +140,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                             <p className="text-2xl font-bold text-slate-900">{candidate.metrics.approval}</p>
                                             <p className="text-xs text-slate-500">Approval Votes</p>
                                         </div>
-                                        
+
                                         <div className="text-center space-y-1">
                                             <div className="flex items-center justify-center">
                                                 {candidate.metrics.headToHead >= 0 ? (
@@ -119,7 +154,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                             </p>
                                             <p className="text-xs text-slate-500">Net H2H</p>
                                         </div>
-                                        
+
                                         <div className="text-center space-y-1">
                                             <div className="flex items-center justify-center">
                                                 <Users className="w-5 h-5 text-purple-500" />
@@ -133,14 +168,17 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                 </div>
 
                                 {/* Details */}
-                                <div className={`text-sm space-y-1 font-mono rounded-lg p-4 ${
-                                    isFirstPlace
+                                <div className={`space-y-2 font-mono rounded-lg p-4 ${isFirstPlace
                                         ? hasTie
                                             ? "bg-yellow-100/50 text-yellow-800"
                                             : "bg-green-100/50 text-green-800"
                                         : "bg-slate-100/50 text-slate-700"
-                                }`}>
-                                    {candidate.description}
+                                    }`}>
+                                    {descriptionParts.map((part, idx) => (
+                                        <p key={idx} className="text-sm">
+                                            {part}
+                                        </p>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -154,6 +192,9 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                     <CardTitle className="text-blue-900">How Rankings are Determined</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <p className="text-sm text-blue-800 mb-4">
+                        After selecting the Smith set (candidates who collectively beat all others), candidates are ranked by:
+                    </p>
                     <ol className="list-decimal list-inside space-y-2 text-blue-800">
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
@@ -163,15 +204,15 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
-                                <TrendingUp className="w-4 h-4 text-blue-500" />
+                                <Swords className="w-4 h-4 text-blue-500" />
                             </span>
-                            <span>If tied, head-to-head record (net wins minus losses)</span>
+                            <span>If still tied and they faced each other, direct matchup result</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
-                                <Users className="w-4 h-4 text-blue-500" />
+                                <TrendingUp className="w-4 h-4 text-blue-500" />
                             </span>
-                            <span>If still tied and they faced each other, direct matchup result</span>
+                            <span>If tied, head-to-head record (net wins minus losses)</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
@@ -182,6 +223,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                     </ol>
                 </CardContent>
             </Card>
+
 
             {/* Head-to-head Results */}
             {pairwiseResults.length > 0 && (
@@ -201,11 +243,11 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                             </p>
                                             <p className="text-sm text-slate-500">votes</p>
                                         </div>
-                                        
+
                                         <div className="text-2xl font-bold text-slate-400">
                                             VS
                                         </div>
-                                        
+
                                         <div className="text-center space-y-2">
                                             <p className="font-bold text-lg text-slate-900 line-clamp-2 min-h-[3rem]">
                                                 {result.candidate2}
@@ -216,7 +258,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                             <p className="text-sm text-slate-500">votes</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mt-6 pt-4 border-t border-slate-200">
                                         <p className="text-center font-medium">
                                             Winner: {
@@ -226,7 +268,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                         ? result.candidate2
                                                         : "Tie"
                                             }
-                                            {result.candidate1Votes !== result.candidate2Votes && 
+                                            {result.candidate1Votes !== result.candidate2Votes &&
                                                 ` (by ${Math.abs(result.candidate1Votes - result.candidate2Votes)} votes)`
                                             }
                                         </p>
