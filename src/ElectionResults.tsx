@@ -1,5 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+import { CheckCircle2, Medal, TrendingDown, TrendingUp, Users } from 'lucide-react';
+import { Election } from './types';
+import type { CandidateScore } from './utils/ElectionUtils';
 import {
     getPairwiseResults,
     getHeadToHeadVictories,
@@ -7,8 +10,6 @@ import {
     selectWinner,
     getOrdinalSuffix
 } from './utils/ElectionUtils';
-import { Election } from './types';
-import type { CandidateScore } from './utils/ElectionUtils';
 
 const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     if (!election || !election.candidates || !election.votes) {
@@ -45,156 +46,197 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     const victories = getHeadToHeadVictories(pairwiseResults);
     const smithSet = calculateSmithSet(victories);
     const rankedCandidates = smithSet.length > 0 
-        ? (selectWinner(smithSet, victories, election, true) as CandidateScore[])
+        ? selectWinner(smithSet, victories, election, true) 
         : [];
 
     return (
-        <div className="space-y-8">
-            <Card className="max-w-5xl mx-auto">
+        <div className="space-y-8 p-4 md:p-8 max-w-7xl mx-auto">
+            {/* Header Section */}
+            <div className="text-center space-y-4">
+                <h1 className="text-3xl font-bold text-slate-900">{election.title}</h1>
+                <div className="flex items-center justify-center gap-2 text-slate-600">
+                    <Users className="w-5 h-5" />
+                    <span className="text-lg">{election.votes.length} total votes</span>
+                </div>
+            </div>
+
+            {/* Results Grid */}
+            <div className="grid gap-6">
+                {rankedCandidates.map((candidate: CandidateScore, index: number) => {
+                    const isFirstPlace = candidate.rank === 1;
+                    const hasTie = candidate.isTied;
+                    
+                    return (
+                        <div 
+                            key={candidate.name}
+                            className={`transform transition-all duration-200 hover:scale-[1.02] ${
+                                isFirstPlace 
+                                    ? hasTie 
+                                        ? "bg-gradient-to-br from-amber-50 to-yellow-50 shadow-yellow-100"
+                                        : "bg-gradient-to-br from-emerald-50 to-green-50 shadow-emerald-100"
+                                    : "bg-gradient-to-br from-slate-50 to-gray-50"
+                            } rounded-xl shadow-lg border border-slate-200 overflow-hidden`}
+                        >
+                            <div className="p-6 space-y-4">
+                                {/* Header */}
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            {isFirstPlace && <Medal className="w-6 h-6 text-yellow-500" />}
+                                            <h2 className="text-2xl font-bold text-slate-900">
+                                                {candidate.name}
+                                            </h2>
+                                        </div>
+                                        <p className={`text-sm font-medium ${
+                                            isFirstPlace
+                                                ? hasTie ? "text-yellow-700" : "text-green-700"
+                                                : "text-slate-600"
+                                        }`}>
+                                            {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
+                                        </p>
+                                    </div>
+                                    
+                                    {/* Metrics Grid */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">{candidate.metrics.approval}</p>
+                                            <p className="text-xs text-slate-500">Approval Votes</p>
+                                        </div>
+                                        
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                {candidate.metrics.headToHead >= 0 ? (
+                                                    <TrendingUp className="w-5 h-5 text-green-500" />
+                                                ) : (
+                                                    <TrendingDown className="w-5 h-5 text-red-500" />
+                                                )}
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">
+                                                {candidate.metrics.headToHead > 0 ? "+" : ""}{candidate.metrics.headToHead}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Net H2H</p>
+                                        </div>
+                                        
+                                        <div className="text-center space-y-1">
+                                            <div className="flex items-center justify-center">
+                                                <Users className="w-5 h-5 text-purple-500" />
+                                            </div>
+                                            <p className="text-2xl font-bold text-slate-900">
+                                                {candidate.metrics.margin.toFixed(2)}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Avg Margin</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Details */}
+                                <div className={`text-sm space-y-1 font-mono rounded-lg p-4 ${
+                                    isFirstPlace
+                                        ? hasTie
+                                            ? "bg-yellow-100/50 text-yellow-800"
+                                            : "bg-green-100/50 text-green-800"
+                                        : "bg-slate-100/50 text-slate-700"
+                                }`}>
+                                    {candidate.description}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Methodology Card */}
+            <Card className="bg-blue-50 border-blue-200">
                 <CardHeader>
-                    <CardTitle className="text-xl">Election Results: {election.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Total Votes: {election.votes.length}
-                    </p>
+                    <CardTitle className="text-blue-900">How Rankings are Determined</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-8">
-                        {/* Smith Set Rankings */}
-                        {rankedCandidates.length > 0 && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Smith Set Rankings</h3>
-                                <div className="space-y-4">
-                                    {rankedCandidates.map((candidate: CandidateScore, index: number) => {
-                                        const isFirstPlace = candidate.rank === 1;
-                                        const hasTie = candidate.isTied;
-                                        
-                                        return (
-                                            <div 
-                                                key={candidate.name}
-                                                className={`p-6 rounded-lg border ${
-                                                    isFirstPlace
-                                                        ? hasTie 
-                                                            ? "bg-yellow-50 border-yellow-200"  // Tied for first
-                                                            : "bg-green-50 border-green-200"    // Clear winner
-                                                        : "bg-slate-50 border-slate-200"        // Other positions
-                                                }`}
-                                            >
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <h4 className={`text-lg font-semibold ${
-                                                                isFirstPlace 
-                                                                    ? hasTie
-                                                                        ? "text-yellow-800"
-                                                                        : "text-green-800"
-                                                                    : "text-slate-800"
-                                                            }`}>
-                                                                {candidate.name}
-                                                            </h4>
-                                                            <p className={`text-sm ${
-                                                                isFirstPlace
-                                                                    ? hasTie
-                                                                        ? "text-yellow-700"
-                                                                        : "text-green-700"
-                                                                    : "text-slate-600"
-                                                            }`}>
-                                                                {hasTie ? `Tied for ${candidate.rank}${getOrdinalSuffix(candidate.rank)} place` : `${candidate.rank}${getOrdinalSuffix(candidate.rank)} place`}
-                                                            </p>
-                                                        </div>
-                                                        <div className={`text-sm font-medium space-y-1 text-right ${
-                                                            isFirstPlace
-                                                                ? hasTie
-                                                                    ? "text-yellow-800"
-                                                                    : "text-green-800"
-                                                                : "text-slate-600"
-                                                        }`}>
-                                                            <div>Approval Votes: {candidate.metrics.approval}</div>
-                                                            <div>Net H2H: {candidate.metrics.headToHead > 0 ? "+" : ""}{candidate.metrics.headToHead}</div>
-                                                            <div>Avg Margin: {candidate.metrics.margin.toFixed(2)}</div>
-                                                        </div>
-                                                    </div>
-                                                    {candidate.description && (
-                                                        <div className={`text-sm space-y-1 font-mono ${
-                                                            isFirstPlace
-                                                                ? hasTie
-                                                                    ? "text-yellow-700"
-                                                                    : "text-green-700"
-                                                                : "text-slate-600"
-                                                        }`}>
-                                                            {candidate.description}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Smith Set Explanation */}
-                        {smithSet.length > 0 && (
-                            <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-600 mb-4">
-                                    Rankings are determined in order by:
-                                </p>
-                                <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
-                                    <li>Number of approval votes</li>
-                                    <li>If tied, head-to-head record (net wins minus losses)</li>
-                                    <li>If still tied and they faced each other, direct matchup result</li>
-                                    <li>If still tied, average victory margin</li>
-                                </ol>
-                            </div>
-                        )}
-
-                        {/* Head-to-head Results */}
-                        {pairwiseResults.length > 0 && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Head-to-head Matchups</h3>
-                                <div className="grid gap-4">
-                                    {pairwiseResults.map((result, index) => (
-                                        <div key={index} className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-                                            <div className="grid grid-cols-[minmax(0,2.5fr),auto,minmax(0,2.5fr)] gap-8 items-center">
-                                                <div className="space-y-2 min-w-0">
-                                                    <p className="font-medium line-clamp-2 min-h-[2.5rem] text-lg">
-                                                        {result.candidate1}
-                                                    </p>
-                                                    <p className="text-sm text-slate-600">
-                                                        {result.candidate1Votes} votes
-                                                    </p>
-                                                </div>
-                                                <div className="text-slate-400 font-medium self-start pt-2 px-4">
-                                                    vs
-                                                </div>
-                                                <div className="space-y-2 min-w-0 text-right">
-                                                    <p className="font-medium line-clamp-2 min-h-[2.5rem] text-lg">
-                                                        {result.candidate2}
-                                                    </p>
-                                                    <p className="text-sm text-slate-600">
-                                                        {result.candidate2Votes} votes
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 text-sm text-center font-medium text-slate-700 pt-3 border-t border-slate-200">
-                                                Winner: {
-                                                    result.candidate1Votes > result.candidate2Votes
-                                                        ? result.candidate1
-                                                        : result.candidate2Votes > result.candidate1Votes
-                                                            ? result.candidate2
-                                                            : "Tie"
-                                                }
-                                                {result.candidate1Votes !== result.candidate2Votes && 
-                                                    ` (by ${Math.abs(result.candidate1Votes - result.candidate2Votes)} votes)`
-                                                }
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>Number of approval votes</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <TrendingUp className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If tied, head-to-head record (net wins minus losses)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <Users className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If still tied and they faced each other, direct matchup result</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="mt-1">
+                                <Medal className="w-4 h-4 text-blue-500" />
+                            </span>
+                            <span>If still tied, average victory margin</span>
+                        </li>
+                    </ol>
                 </CardContent>
             </Card>
+
+            {/* Head-to-head Results */}
+            {pairwiseResults.length > 0 && (
+                <div className="space-y-6">
+                    <h3 className="text-2xl font-bold text-slate-900 text-center">Head-to-head Matchups</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {pairwiseResults.map((result, index) => (
+                            <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
+                                <CardContent className="pt-6">
+                                    <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                                        <div className="text-center space-y-2">
+                                            <p className="font-bold text-lg text-slate-900 line-clamp-2 min-h-[3rem]">
+                                                {result.candidate1}
+                                            </p>
+                                            <p className="text-3xl font-bold text-blue-600">
+                                                {result.candidate1Votes}
+                                            </p>
+                                            <p className="text-sm text-slate-500">votes</p>
+                                        </div>
+                                        
+                                        <div className="text-2xl font-bold text-slate-400">
+                                            VS
+                                        </div>
+                                        
+                                        <div className="text-center space-y-2">
+                                            <p className="font-bold text-lg text-slate-900 line-clamp-2 min-h-[3rem]">
+                                                {result.candidate2}
+                                            </p>
+                                            <p className="text-3xl font-bold text-blue-600">
+                                                {result.candidate2Votes}
+                                            </p>
+                                            <p className="text-sm text-slate-500">votes</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-6 pt-4 border-t border-slate-200">
+                                        <p className="text-center font-medium">
+                                            Winner: {
+                                                result.candidate1Votes > result.candidate2Votes
+                                                    ? result.candidate1
+                                                    : result.candidate2Votes > result.candidate1Votes
+                                                        ? result.candidate2
+                                                        : "Tie"
+                                            }
+                                            {result.candidate1Votes !== result.candidate2Votes && 
+                                                ` (by ${Math.abs(result.candidate1Votes - result.candidate2Votes)} votes)`
+                                            }
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
