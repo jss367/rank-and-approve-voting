@@ -51,20 +51,26 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                             <div className="grid gap-4">
                                 {pairwiseResults.map((result, index) => (
                                     <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                                        <div className="grid grid-cols-[minmax(0,2fr),auto,minmax(0,2fr)] gap-4 items-center">
                                             <div className="space-y-1 min-w-0">
-                                                <p className="font-medium truncate" title={result.candidate1}>
+                                                <p 
+                                                    className="font-medium line-clamp-2 min-h-[2.5rem]" 
+                                                    title={result.candidate1}
+                                                >
                                                     {result.candidate1}
                                                 </p>
                                                 <p className="text-sm text-slate-600">
                                                     {result.candidate1Votes} votes
                                                 </p>
                                             </div>
-                                            <div className="text-slate-400 text-sm font-medium">
+                                            <div className="text-slate-400 text-sm font-medium self-start pt-2">
                                                 vs
                                             </div>
                                             <div className="space-y-1 min-w-0 text-right">
-                                                <p className="font-medium truncate" title={result.candidate2}>
+                                                <p 
+                                                    className="font-medium line-clamp-2 min-h-[2.5rem]" 
+                                                    title={result.candidate2}
+                                                >
                                                     {result.candidate2}
                                                 </p>
                                                 <p className="text-sm text-slate-600">
@@ -72,7 +78,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="mt-2 text-sm text-center font-medium text-slate-700">
+                                        <div className="mt-3 text-sm text-center font-medium text-slate-700 pt-2 border-t border-slate-200">
                                             Winner: {
                                                 result.candidate1Votes > result.candidate2Votes
                                                     ? result.candidate1
@@ -93,8 +99,15 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                 <p className="text-sm text-blue-600 mb-2">
                                     The Smith set contains the candidates that form the smallest non-empty set where every candidate in the set beats every candidate outside the set in a head-to-head match.
                                 </p>
-                                <div className="text-sm font-medium text-blue-800 break-words">
-                                    Smith Set members: {smithSet.join(", ")}
+                                <div className="text-sm font-medium text-blue-800 space-y-1">
+                                    <div>Smith Set members:</div>
+                                    <div className="pl-4">
+                                        {smithSet.map((member, index) => (
+                                            <div key={index} className="line-clamp-2" title={member}>
+                                                • {member}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -102,12 +115,15 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         {/* Winner */}
                         {winner && (
                             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                <h3 className="text-lg font-semibold text-green-800 break-words">
-                                    Winner: {winner.name}
-                                </h3>
-                                <p className="text-sm text-green-600">
-                                    Selected from the Smith set with highest approval ({winner.approval} votes)
-                                </p>
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-semibold text-green-800">Winner:</h3>
+                                    <p className="font-medium text-green-800 line-clamp-2" title={winner.name}>
+                                        {winner.name}
+                                    </p>
+                                    <p className="text-sm text-green-600">
+                                        Selected from the Smith set with highest approval ({winner.approval} votes)
+                                    </p>
+                                </div>
                             </div>
                         )}
 
@@ -118,14 +134,17 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                 {approvalScores.map((score) => (
                                     <div
                                         key={score.name}
-                                        className="flex items-center p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                        className="flex items-start p-3 bg-slate-50 rounded-lg border border-slate-200"
                                     >
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium truncate" title={score.name}>
+                                            <p 
+                                                className="font-medium line-clamp-2" 
+                                                title={score.name}
+                                            >
                                                 {score.name}
                                             </p>
                                         </div>
-                                        <span className="ml-4 text-slate-600 whitespace-nowrap">
+                                        <span className="ml-4 text-slate-600 whitespace-nowrap pt-0.5">
                                             {score.approval} approvals
                                         </span>
                                     </div>
