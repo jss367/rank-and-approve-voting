@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from './components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { getPairwiseResults, getHeadToHeadVictories, calculateSmithSet } from './utils/ElectionUtils';
 import { Election } from './types';
 
@@ -53,7 +53,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                     <div key={index} className="bg-slate-50 p-6 rounded-lg border border-slate-200"> {/* Increased padding */}
                                         <div className="grid grid-cols-[minmax(0,2.5fr),auto,minmax(0,2.5fr)] gap-8 items-center"> {/* Increased gap and proportions */}
                                             <div className="space-y-2 min-w-0"> {/* Increased spacing */}
-                                                <p 
+                                                <p
                                                     className="font-medium line-clamp-2 min-h-[2.5rem] text-lg" /* Increased font size */
                                                     title={result.candidate1}
                                                 >
@@ -67,7 +67,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                                 vs
                                             </div>
                                             <div className="space-y-2 min-w-0 text-right"> {/* Increased spacing */}
-                                                <p 
+                                                <p
                                                     className="font-medium line-clamp-2 min-h-[2.5rem] text-lg" /* Increased font size */
                                                     title={result.candidate2}
                                                 >
@@ -137,7 +137,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                                         className="flex items-start p-4 bg-slate-50 rounded-lg border border-slate-200"
                                     >
                                         <div className="flex-1 min-w-0">
-                                            <p 
+                                            <p
                                                 className="font-medium line-clamp-2 text-lg"
                                                 title={score.name}
                                             >
