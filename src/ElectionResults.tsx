@@ -27,7 +27,7 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
     // Calculate approval scores
     const approvalScores = election.candidates.map(candidate => ({
         name: candidate.name,
-        approval: election.votes.filter(vote => 
+        approval: election.votes.filter(vote =>
             vote.approved.includes(candidate.id)
         ).length
     })).sort((a, b) => b.approval - a.approval);
@@ -51,35 +51,31 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         {/* Pairwise Results */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Head-to-head Matchups</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left py-2">First Candidate</th>
-                                            <th className="text-right py-2">Votes</th>
-                                            <th className="text-left py-2 pl-4">Second Candidate</th>
-                                            <th className="text-right py-2">Votes</th>
-                                            <th className="text-right py-2">Winner</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {pairwiseResults.map((result, index) => (
-                                            <tr key={index} className="border-b">
-                                                <td className="py-2">{result.candidate1}</td>
-                                                <td className="text-right py-2">{result.candidate1Votes}</td>
-                                                <td className="py-2 pl-4">{result.candidate2}</td>
-                                                <td className="text-right py-2">{result.candidate2Votes}</td>
-                                                <td className="text-right py-2 font-medium">
-                                                    {result.candidate1Votes > result.candidate2Votes 
-                                                        ? result.candidate1
-                                                        : result.candidate2Votes > result.candidate1Votes
-                                                            ? result.candidate2
-                                                            : "Tie"}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="grid gap-4">
+                                {pairwiseResults.map((result, index) => (
+                                    <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <div className="flex justify-between items-center gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{result.candidate1}</p>
+                                                <p className="text-sm text-slate-600">{result.candidate1Votes} votes</p>
+                                            </div>
+                                            <div className="text-slate-400">vs</div>
+                                            <div className="flex-1 min-w-0 text-right">
+                                                <p className="font-medium truncate">{result.candidate2}</p>
+                                                <p className="text-sm text-slate-600">{result.candidate2Votes} votes</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2 text-sm text-center font-medium text-slate-700">
+                                            Winner: {
+                                                result.candidate1Votes > result.candidate2Votes
+                                                    ? result.candidate1
+                                                    : result.candidate2Votes > result.candidate1Votes
+                                                        ? result.candidate2
+                                                        : "Tie"
+                                            }
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
@@ -109,23 +105,16 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                         {/* Approval Scores */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Approval Scores</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left py-2">Candidate</th>
-                                            <th className="text-right py-2">Approvals</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {approvalScores.map((score) => (
-                                            <tr key={score.name} className="border-b">
-                                                <td className="py-2">{score.name}</td>
-                                                <td className="text-right py-2">{score.approval}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="grid gap-2">
+                                {approvalScores.map((score) => (
+                                    <div
+                                        key={score.name}
+                                        className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                    >
+                                        <span className="font-medium truncate">{score.name}</span>
+                                        <span className="ml-4 text-slate-600">{score.approval} approvals</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
