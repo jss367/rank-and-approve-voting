@@ -32,12 +32,6 @@ Deploy to firebase:
 
 Launches the test runner in the interactive watch mode.
 
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
 # Election Design
 
 To see the election design doc, go to Rank-and-Approve Voting System Design.md
-
-
