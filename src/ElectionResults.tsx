@@ -214,13 +214,13 @@ const ElectionResults: React.FC<{ election: Election }> = ({ election }) => {
                             <span className="mt-1">
                                 <Swords className="w-4 h-4 text-blue-500" />
                             </span>
-                            <span>If still tied and they faced each other, direct matchup result</span>
+                            <span>If tied, direct matchup result</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
                                 <TrendingUp className="w-4 h-4 text-blue-500" />
                             </span>
-                            <span>If tied, head-to-head record (net wins minus losses)</span>
+                            <span>If still tied, head-to-head record (net wins minus losses)</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="mt-1">
