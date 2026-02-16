@@ -151,11 +151,11 @@ export const selectWinner = (
       const losses = victories.filter(v => v.loser === candidate).length;
       const netVictories = wins - losses;
       
-      const margins = victories
-          .filter(v => v.winner === candidate || v.loser === candidate)
-          .map(v => v.winner === candidate ? v.margin : -v.margin);
-      const avgMargin = margins.length > 0 
-          ? margins.reduce((sum, m) => sum + m, 0) / margins.length
+      const victoryMargins = victories
+          .filter(v => v.winner === candidate)
+          .map(v => v.margin);
+      const avgMargin = victoryMargins.length > 0
+          ? victoryMargins.reduce((sum, m) => sum + m, 0) / victoryMargins.length
           : 0;
       
       const candidateId = election.candidates.find(c => c.name === candidate)?.id || '';
@@ -207,6 +207,40 @@ export const selectWinner = (
       return b.metrics.margin - a.metrics.margin;
   });
 
+  // Helper: check if two candidates are truly tied across all tiebreaker levels
+  const areTied = (a: CandidateScore, b: CandidateScore): boolean => {
+      if (a.metrics.approval !== b.metrics.approval) return false;
+      const directMatchup = victories.some(v =>
+          (v.winner === a.name && v.loser === b.name) ||
+          (v.winner === b.name && v.loser === a.name)
+      );
+      if (directMatchup) return false;
+      if (a.metrics.headToHead !== b.metrics.headToHead) return false;
+      if (a.metrics.margin !== b.metrics.margin) return false;
+      return true;
+  };
+
+  // Helper: determine the deciding factor between two candidates
+  const getDecidingFactor = (current: CandidateScore, prev: CandidateScore): string => {
+      if (current.metrics.approval !== prev.metrics.approval) {
+          return "\nRanked by approval votes";
+      }
+      const directMatchup = victories.find(v =>
+          (v.winner === current.name && v.loser === prev.name) ||
+          (v.winner === prev.name && v.loser === current.name)
+      );
+      if (directMatchup) {
+          return "\nRanked by direct head-to-head matchup";
+      }
+      if (current.metrics.headToHead !== prev.metrics.headToHead) {
+          return "\nRanked by head-to-head record";
+      }
+      if (current.metrics.margin !== prev.metrics.margin) {
+          return "\nRanked by average victory margin";
+      }
+      return "";
+  };
+
   let currentRank = 1;
 
   sortedScores.forEach((score, index) => {
@@ -214,64 +248,24 @@ export const selectWinner = (
       const prevCand = sortedScores[index - 1];
 
       // Determine if current rank should increment
-      if (index > 0) {
-          const prevScore = sortedScores[index - 1];
-          const directMatchup = victories.find(v => 
-              (v.winner === score.name && v.loser === prevScore.name) ||
-              (v.winner === prevScore.name && v.loser === score.name)
-          );
-          
-          if (score.metrics.approval !== prevScore.metrics.approval ||
-              (directMatchup && directMatchup.winner !== prevScore.name) ||
-              score.metrics.headToHead !== prevScore.metrics.headToHead ||
-              score.metrics.margin !== prevScore.metrics.margin) {
-              currentRank = index + 1;
-          }
+      if (index > 0 && prevCand && !areTied(score, prevCand)) {
+          currentRank = index + 1;
       }
-      
+
       score.rank = currentRank;
 
       // Check for ties with adjacent candidates
-      score.isTied = (nextCand && 
-          nextCand.metrics.approval === score.metrics.approval &&
-          !victories.some(v => 
-              (v.winner === score.name && v.loser === nextCand.name) ||
-              (v.winner === nextCand.name && v.loser === score.name)
-          ) &&
-          nextCand.metrics.headToHead === score.metrics.headToHead
-      ) || (prevCand && 
-          prevCand.metrics.approval === score.metrics.approval &&
-          !victories.some(v => 
-              (v.winner === score.name && v.loser === prevCand.name) ||
-              (v.winner === prevCand.name && v.loser === score.name)
-          ) &&
-          prevCand.metrics.headToHead === score.metrics.headToHead
-      );
+      score.isTied = (!!nextCand && areTied(score, nextCand)) ||
+          (!!prevCand && areTied(score, prevCand));
 
       // Create detailed description showing which metric determined the ranking
-      const rankText = score.isTied 
-          ? `Tied for ${score.rank}${getOrdinalSuffix(score.rank)} place` 
+      const rankText = score.isTied
+          ? `Tied for ${score.rank}${getOrdinalSuffix(score.rank)} place`
           : `${score.rank}${getOrdinalSuffix(score.rank)} place`;
 
-      let decidingFactor = "";
-      if (index > 0) {
-          const prevScore = sortedScores[index - 1];
-          if (score.metrics.approval !== prevScore.metrics.approval) {
-              decidingFactor = "\nRanked by approval votes";
-          } else {
-              const directMatchup = victories.find(v => 
-                  (v.winner === score.name && v.loser === prevScore.name) ||
-                  (v.winner === prevScore.name && v.loser === score.name)
-              );
-              if (directMatchup) {
-                  decidingFactor = "\nRanked by direct head-to-head matchup";
-              } else if (score.metrics.headToHead !== prevScore.metrics.headToHead) {
-                  decidingFactor = "\nRanked by head-to-head record";
-              } else if (!score.isTied) {
-                  decidingFactor = "\nRanked by average victory margin";
-              }
-          }
-      }
+      const decidingFactor = index > 0 && prevCand
+          ? getDecidingFactor(score, prevCand)
+          : "";
 
       score.description = [
           rankText,

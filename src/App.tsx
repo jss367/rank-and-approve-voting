@@ -16,36 +16,18 @@ import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Input } from './components/ui/input';
 import ElectionResults from './ElectionResults';
+import type { Candidate, Vote, Election } from './types';
 
 // Firebase config
 const firebaseConfig = {
-    apiKey: "AIzaSyD2cDOH0jIstu_e7NxPWpjf1cBb9utmxpU",
-    authDomain: "rank-and-approve-voting.firebaseapp.com",
-    projectId: "rank-and-approve-voting",
-    storageBucket: "rank-and-approve-voting.firebasestorage.app",
-    messagingSenderId: "457756698776",
-    appId: "1:457756698776:web:e1326245c652affb7b08ed",
-    measurementId: "G-1KCG6HW8RT"
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY!,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN!,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID!,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET!,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID!,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID!,
+    measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID!
 };
-
-interface Candidate {
-    id: string;
-    name: string;
-}
-
-interface Vote {
-    voterName: string;
-    ranking: string[];
-    approved: string[];
-    timestamp: string;
-}
-
-interface Election {
-    title: string;
-    candidates: Candidate[];
-    votes: Vote[];
-    createdAt: string;
-}
 
 type Mode = 'home' | 'create' | 'vote' | 'success' | 'results';
 
@@ -109,8 +91,17 @@ function App() {
     }, [mode, electionId, loadElection]);
 
     const createElection = async () => {
+        if (!electionTitle.trim()) {
+            setError('Please enter an election title');
+            return;
+        }
+        if (candidates.length < 2) {
+            setError('Please add at least 2 candidates');
+            return;
+        }
         try {
             setLoading(true);
+            setError('');
             const electionData: Election = {
                 title: electionTitle,
                 candidates: candidates,
